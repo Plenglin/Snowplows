@@ -5,7 +5,10 @@
     <title>High Octane Elastic Snowplows</title>
     <script src="/static/js/eventsocket.js" type="text/javascript"></script>
     <script type="text/javascript">
-        var socket = new EventSocket('/game');
+        var socket = new EventSocket('ws://localhost/sockets/matchmaking');
+        socket.on('tootoo', function(data) {
+            console.log(data);
+        });
     </script>
 </head>
 <body>

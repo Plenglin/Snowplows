@@ -1,39 +1,34 @@
-const SUBDIRECTORY = 'eventsockets'
-const DEFAULT_NAMESPACE = '/'
 const RCV_DATA = /(.+)((?:\{|\[).+)/
 
-function EventSocket(namespace) {
+function EventSocket(url) {
 
-    ws = new WebSocket('ws://' + location.href.split( '/' )[2] + '/' + SUBDIRECTORY);
-    this.ws = ws;
-    this.namespace = namespace == null ? DEFAULT_NAMESPACE : namespace;
+    this.ws = new WebSocket(url);
     this.listeners = {};
 
-    var namespace = this.namespace;
+    var esock = this;
 
-    ws.onopen = function() {
-        ws.send(namespace);  // Tell the server our namespace
-        console.log(namespace);
+    this.ws.onopen = function() {
+        console.log('EventSocket connected to ' + url);
     };
 
-    ws.onmessage = function(event) {
+    this.ws.onmessage = function(event) {
         var match = RCV_DATA.exec(event.data);
         var event_name = match[1];
         var encoded_data = match[2];
-        try {
-            this.listeners[event_name](JSON.parse(encoded_data));
-            console.log('Recieved ' + event_name);
-        } catch(error) {
-            console.log('Invalid event, pretending nothing happened');
+        if (event_name in esock.listeners) {
+            esock.listeners[event_name](JSON.parse(encoded_data));
+            console.log('Handling event ' + event_name);
+        } else {
+            console.log('No listener for event ' + event_name + ', ignoring');
         }
     };
 
-    this.emit = function(event, data) {
-        ws.send(event + JSON.stringify(data));
-    };
-
-    this.on = function(event, listener) {
-        this.listeners[event] = listener;
-    };
-
 }
+
+EventSocket.prototype.emit = function(event, data) {
+    this.ws.send(event + JSON.stringify(data));
+};
+
+EventSocket.prototype.on = function(event, listener) {
+    this.listeners[event] = listener;
+};

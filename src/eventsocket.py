@@ -1,9 +1,8 @@
 """
-Websockets, but a bit neater. It's greatly based on Socket.io, but only supports websockets. It will have namespaces, events, and rooms.
+Websockets, but a bit neater. It's greatly based on Socket.io, but only supports websockets. It will have events.
+No namespaces or rooms. Those would be handled by the websocket url.
 
-The first message is always the namespace. Always.
-
-Afterwards, it takes in data in the form of:
+It takes in data in the form of:
 
 [event][json]
 
@@ -34,7 +33,7 @@ class EventSocketRouter:
 
     def __init__(self):
         self.listeners = {}
-        self.sockets = {}
+        self.sockets = []
         self._next_sid = 0
         self.on_open = lambda s: None
         self.on_close = lambda s: None
@@ -48,23 +47,19 @@ class EventSocketRouter:
     def get_socket_handler(self):
         return _linked_handler(self)
 
-    def register_listener(self, event:str, listener: callable, namespace='/'):
-        if namespace not in self.listeners:
-            self.listeners[namespace] = {}
-        self.listeners[namespace][event] = listener
+    def register_listener(self, event:str, listener: callable):
+        self.listeners[event] = listener
 
-    def register_socket(self, socket, namespace):
-        if namespace not in self.sockets:
-            self.sockets[namespace] = []
-        self.sockets[namespace].append(socket)
+    def register_socket(self, socket):
+        self.sockets.append(socket)
         self._next_sid += 1
         return self._next_sid - 1
 
-    def on_received_message(self, event, data, namespace):
+    def on_received_message(self, event, data, socket):
         try:
-            self.listeners[namespace][event](data)
+            self.listeners[event](data, socket)
         except KeyError or IndexError:
-            _logger.warn('No listener was found for event "%s" in namespace "%s"', event, namespace)
+            _logger.warn('No listener was found for event "%s"', event)
 
 
 def _linked_handler(router: EventSocketRouter):
@@ -77,49 +72,43 @@ def _linked_handler(router: EventSocketRouter):
             super(EventSocketHandler, self).__init__(*args, **kwargs)
             self.count = 0
             self.router = router
-            self.namespace = '/'
             self.id = None
 
         def __repr__(self):
             return 'EventSocketHandler({router})'.format(router=hash(self.router))
 
-        def add_to_router(self, namespace):
-            self.namespace = namespace
-            self.id = self.router.register_socket(self, namespace)
-            _logger.info('socket #%s registered to namespace "%s"', self.id, self.namespace)
+        def add_to_router(self):
+            self.id = self.router.register_socket(self)
+            _logger.info('registered socket #%s', self.id)
+            self.router.on_open(self)
 
         def open(self):
             _logger.info('new connection established')
-            self.router.on_open(self)
+            self.add_to_router()
 
         def on_message(self, message):
             _logger.debug('socket #%s recieved message #%s: %s', self.id, self.count, message)
-            if self.count < 1:
-                self.add_to_router(message)
-                self.count += 1
-                return
-
             try:
                 match = re.match(r'(.+)((?:\{|\[).+)', message)  # Ensure that it matches the described format
                 event = match.group(1)
                 encoded_data = match.group(2)
                 data = json.loads(encoded_data)  # Ensure that it's a valid JSON
-                self.router.on_received_message(event, data, self.namespace)
-                _logger.info('socket #%s message #%s triggered event "%s"', self.id, self.count, event)
-            except AttributeError or json.decoder.JSONDecodeError:
+                self.router.on_received_message(event, data, self)
+                _logger.info('socket #%s triggered event "%s" by message #%s', self.id, self.count, event)
+            except json.decoder.JSONDecodeError:
                 # Do nothing because it's not valid JSON
                 _logger.warn('socket #%s dropped message #%s due to improper format: %s', self.id, self.count, message)
 
             self.count += 1
 
         def on_close(self):
-            self.router.sockets[self.namespace].remove(self)
+            self.router.sockets.remove(self)
             self.router.on_close(self)
             _logger.info('Disconnected')
 
         def emit(self, event: str, data):
             to_send = '{event}{json}'.format(event=event, json=json.dumps(data))
-            self.write(to_send)
+            self.write_message(to_send)
 
     return EventSocketHandler
 
