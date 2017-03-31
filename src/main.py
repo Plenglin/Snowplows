@@ -1,20 +1,32 @@
+import logging
+import os
+
 import tornado.ioloop
 import tornado.web
+import tornado.websocket
+
+import eventsocket
+
+
+PATH = os.getcwd()
 
 
 class IndexHandler(tornado.web.RequestHandler):
 
     def get(self):
-        self.write("Hello, world")
+        self.render('html/index.html')
 
+websocket_router = eventsocket.EventSocketRouter()
 
-def make_app():
-    return tornado.web.Application([
-        (r"/", IndexHandler),
-    ])
+app = tornado.web.Application([
+    (r'/', IndexHandler),
+    (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(PATH, '../static')}),
+    (r'/eventsockets', websocket_router.get_socket_handler())
+], template_path='../templates')
 
 
 if __name__ == "__main__":
-    app = make_app()
     app.listen(80)
+    logging.getLogger('eventsocket').setLevel(logging.DEBUG)
+    logging.info('Starting server')
     tornado.ioloop.IOLoop.current().start()
