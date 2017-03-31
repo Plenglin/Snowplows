@@ -35,8 +35,8 @@ class EventSocketRouter:
         self.listeners = {}
         self.sockets = []
         self._next_sid = 0
-        self.on_open = lambda s: None
-        self.on_close = lambda s: None
+        self.on_open = lambda s: _logger.warn('Socket open event undefined, not triggering it')
+        self.on_close = lambda s: _logger.warn('Socket close event undefined, not triggering it')
 
     def get_socket_by_id(self, id):
         try:
