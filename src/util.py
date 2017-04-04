@@ -1,7 +1,10 @@
+"""
+Misc. functions
+"""
 import random
 import string
 
-from constants import LETTERS
+LETTERS = string.ascii_letters + string.digits
 
 
 def offset_box(cx, cy, length, width):

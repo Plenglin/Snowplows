@@ -1,6 +1,4 @@
 # How long between pings before a player is considered disconnected
-import string
-
 TIMEOUT = 10 # NYI
 
 # Physics parameters
@@ -42,6 +40,3 @@ DEAD_BODY_TYPE = 103
 PEOPLE_PER_GAME = 2  # TODO: CHANGE THIS BACK WHEN DONE DEBUGGING
 ROOM_NAME_LENGTH = 16
 TOKEN_LENGTH = 8
-
-# Miscellaneous
-LETTERS = string.ascii_letters + string.digits

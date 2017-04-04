@@ -1,12 +1,12 @@
+"""
+Main server file. The server is run with this.
+"""
 import logging
 import os
 
-import tornado.ioloop
-import tornado.web
-import tornado.websocket
+import tornado
 
 import eventsocket
-
 
 PATH = os.getcwd()
 

@@ -1,14 +1,15 @@
+"""Code that runs the actual game itself. It should be as independent from the graphics and client-server interface 
+as possible. """
 import math
 import random
 import threading
-
-import pymunk
 import time
 
+import pymunk
 from pymunk import Vec2d
 
-from constants import *
 import util
+from constants import *
 
 
 class Player:

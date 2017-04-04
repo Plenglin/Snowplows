@@ -4,7 +4,7 @@ No namespaces or rooms. Those would be handled by the websocket url.
 
 It takes in data in the form of:
 
-[event][json]
+event{json}
 
 However, json must be an array or object.
 

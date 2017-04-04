@@ -1,6 +1,8 @@
+"""
+The code that manages all the multiple threads and games per thread.
+"""
 import asyncio
 import threading
-
 import time
 
 import game
