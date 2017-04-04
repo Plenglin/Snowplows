@@ -35,8 +35,8 @@ class EventSocketRouter:
         self.listeners = {}
         self.sockets = []
         self._next_sid = 0
-        self.on_open = lambda s: _logger.warn('Socket open event undefined, not triggering it')
-        self.on_close = lambda s: _logger.warn('Socket close event undefined, not triggering it')
+        self.on_open = lambda s: _logger.warning('Socket open event undefined, not triggering it')
+        self.on_close = lambda s: _logger.warning('Socket close event undefined, not triggering it')
 
     def get_socket_by_id(self, id):
         try:
@@ -59,7 +59,7 @@ class EventSocketRouter:
         try:
             self.listeners[event](data, socket)
         except KeyError or IndexError:
-            _logger.warn('No listener was found for event "%s"', event)
+            _logger.warning('No listener was found for event "%s"', event)
 
 
 def _linked_handler(router: EventSocketRouter):
@@ -97,7 +97,7 @@ def _linked_handler(router: EventSocketRouter):
                 _logger.info('socket #%s triggered event "%s" by message #%s', self.id, self.count, event)
             except json.decoder.JSONDecodeError:
                 # Do nothing because it's not valid JSON
-                _logger.warn('socket #%s dropped message #%s due to improper format: %s', self.id, self.count, message)
+                _logger.warning('socket #%s dropped message #%s due to improper format: %s', self.id, self.count, message)
 
             self.count += 1
 
