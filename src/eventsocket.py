@@ -18,10 +18,9 @@ Non-examples:
 """
 import json
 import logging
-
-from tornado import websocket
 import re
 
+from tornado import websocket
 
 _logger = logging.getLogger('eventsocket')
 
@@ -47,13 +46,47 @@ class EventSocketRouter:
     def get_socket_handler(self):
         return _linked_handler(self)
 
-    def register_listener(self, event:str, listener: callable):
+    def register_listener(self, event: str, listener: callable):
         self.listeners[event] = listener
 
     def register_socket(self, socket):
         self.sockets.append(socket)
         self._next_sid += 1
         return self._next_sid - 1
+
+    def on(self, arg):
+        """
+        A shorthand for register_listener. It can be used as a function or a decorator. If arg is a string, 
+        it registers that as the listener. Without any args, it is a decorator that takes the name of the function 
+        and uses that as the event name. Example of usage: 
+        
+        :Example:
+        
+        code-block::
+            @router.on
+            def event():
+                ...
+            # is equivalent to
+            @router.on('event')
+            def listener():
+                ....
+        
+        :param arg: a string or function
+        
+        :return: a decorator function or a regular function depending on input
+        """
+        if type(arg) == str:  # Take-in-argument mode
+            def decorator(func):
+                self.register_listener(arg, func)
+                return func
+            return decorator
+
+        elif callable(arg):  # Decorator mode
+            self.register_listener(arg.__name__, arg)
+            return arg
+
+        else:
+            raise TypeError
 
     def on_received_message(self, event, data, socket):
         try:
@@ -66,6 +99,7 @@ def _linked_handler(router: EventSocketRouter):
     """
     Creates a websocket handler class that is linked to a router.
     """
+
     class EventSocketHandler(websocket.WebSocketHandler):
 
         def __init__(self, *args, **kwargs):
@@ -89,7 +123,7 @@ def _linked_handler(router: EventSocketRouter):
         def on_message(self, message):
             _logger.debug('socket #%s recieved message #%s: %s', self.id, self.count, message)
             try:
-                match = re.match(r'(.+)((?:\{|\[).+)', message)  # Ensure that it matches the described format
+                match = re.match(r'(.+)((?:[{\[]).+)', message)  # Ensure that it matches the described format
                 event = match.group(1)
                 encoded_data = match.group(2)
                 data = json.loads(encoded_data)  # Ensure that it's a valid JSON
@@ -97,7 +131,8 @@ def _linked_handler(router: EventSocketRouter):
                 _logger.info('socket #%s triggered event "%s" by message #%s', self.id, self.count, event)
             except json.decoder.JSONDecodeError:
                 # Do nothing because it's not valid JSON
-                _logger.warning('socket #%s dropped message #%s due to improper format: %s', self.id, self.count, message)
+                _logger.warning('socket #%s dropped message #%s due to improper format: %s', self.id, self.count,
+                                message)
 
             self.count += 1
 
@@ -111,6 +146,7 @@ def _linked_handler(router: EventSocketRouter):
             self.write_message(to_send)
 
     return EventSocketHandler
+
 
 if __name__ == '__main__':
     pass
