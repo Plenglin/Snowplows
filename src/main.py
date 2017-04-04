@@ -22,7 +22,7 @@ matchmaking_router.register_listener('test', lambda d, s: s.emit('tooto', {'fads
 app = tornado.web.Application([
     (r'/', IndexHandler),
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(PATH, '../static')}),
-    (r'/sockets/matchmaking', matchmaking_router.get_socket_handler())
+    (r'/sockets/matchmaking/(.*)', eventsocket.EventSocketHandler, {'router': matchmaking_router})
 ], template_path='../templates')
 
 
