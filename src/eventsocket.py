@@ -38,7 +38,7 @@ class EventSocketRouter:
         self.on_close = lambda s: _logger.warning('Socket close event undefined, not triggering it')
 
     def __repr__(self):
-        return 'EventSocketRouter(hash={})'.format(hash(self))
+        return 'EventSocketRouter({})'.format(hash(self))
 
     def get_socket_by_id(self, id):
         try:
@@ -47,6 +47,12 @@ class EventSocketRouter:
             return None
 
     def register_listener(self, event: str, listener: callable):
+        """
+        Register a listener to listen to an event.
+        :param event: the event name. Must be alphanumeric.
+        :param listener: the callback called when the event is detected.
+        :return: 
+        """
         self.listeners[event] = listener
 
     def register_socket(self, socket):
@@ -62,14 +68,13 @@ class EventSocketRouter:
         
         :Example:
         
-        code-block::
-            @router.on
-            def event():
-                ...
-            # is equivalent to
-            @router.on('event')
-            def listener():
-                ....
+        @router.on
+        def event():
+            ...
+        # is equivalent to
+        @router.on('event')
+        def listener():
+            ....
         
         :param arg: a string or function
         
@@ -98,17 +103,16 @@ class EventSocketRouter:
 class EventSocketHandler(websocket.WebSocketHandler):
 
     def __repr__(self):
-        return 'EventSocketHandler(router={}, hash={})'.format(self.router, hash(self))
+        return 'EventSocketHandler(router={}, id={})'.format(self.router, self.id)
 
     # noinspection PyMethodOverriding
-    def initialize(self, router):
+    def initialize(self, router: EventSocketRouter):
         self.router = router
         self.id = None
         self.url_param = None
         self.count = 0
 
     def open(self, url_param=''):
-        print(self.router)
         _logger.info('new connection established with url_param: %s', url_param)
         self.add_to_router()
         self.url_param = url_param
@@ -121,7 +125,7 @@ class EventSocketHandler(websocket.WebSocketHandler):
     def on_message(self, message):
         _logger.debug('socket #%s recieved message #%s: %s', self.id, self.count, message)
         try:
-            match = re.match(r'(.+)((?:[{\[]).+)', message)  # Ensure that it matches the described format
+            match = re.match(r'([\w]+)([{\[].+)', message)  # Ensure that it matches the described format
             event = match.group(1)
             encoded_data = match.group(2)
             data = json.loads(encoded_data)  # Ensure that it's a valid JSON
@@ -142,6 +146,78 @@ class EventSocketHandler(websocket.WebSocketHandler):
     def emit(self, event: str, data):
         to_send = '{event}{json}'.format(event=event, json=json.dumps(data))
         self.write_message(to_send)
+
+
+class Sequence:
+    """
+    A sequence of messages sent back and forth between the server and client. Good for handshakes or any sort of 
+    "request" type of communication. 
+     
+    The messages are sent like this:
+    {message: [current message], data: [data being sent, or null for stop message]}
+    
+    Create a new instance for every new sequence.
+    """
+
+    def __init__(self, event_name: str, socket: EventSocketHandler, *listeners):
+        """
+        Create a new ReceivingSequence. 
+        
+        :param event_name: The name of the event to be used when sending messages back. 
+        
+        :param listeners: A list of callables that take in 2 dicts (first contains the raw socket data, second can be 
+        modified and shared between each callback) and return a list, dict, or None. If it returns a list or dict, 
+        that will be sent and the sequence continues. The sequence stops when a listener returns None or the number 
+        of messages exceeds the number of listeners supplied. 
+        """
+        self.event_name = event_name
+        self.socket = socket
+        self.listeners = iter(*listeners)
+
+        self.messages = 0
+        self.shared_data = {}
+        self.on_stop = lambda d: _logger.warning('%s stopped, no callback defined.', self)
+
+    def __repr__(self):
+        return 'Sequence(event={}, socket={})'.format(self.event_name, self.socket)
+
+    def _listener(self, data, socket):
+        if socket == self.socket:
+            if data['data'] is not None:
+                try:
+                    next_listener = next(self.listeners)
+                    self._send_data(next_listener(data['data'], self.shared_data))
+                except StopIteration:
+                    self._send_data(None)
+                    self.on_stop(data)
+                self.messages += 1
+            else:
+                self.on_stop(data)
+
+    def register(self):
+        """
+        Registers this sequence.
+        
+        :return: itself, for method chaining
+        """
+        self.socket.router.register_listener(self.event_name, self._listener)
+        return self
+
+    def begin(self, data, socket):
+        """
+        Begin the transmission with a socket if the server is meant to start the sequence. If the client is supposed 
+        to begin, do NOT use this method! 
+        
+        :param data: The initial data to send.
+        
+        :param socket: The socket to send through.
+        
+        :return: None
+        """
+        self._send_data(data)
+
+    def _send_data(self, data):
+        self.socket.emit(self.event_name, {'count': self.messages, 'data': data})
 
 
 if __name__ == '__main__':

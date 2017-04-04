@@ -16,13 +16,19 @@ class IndexHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('html/index.html')
 
-matchmaking_router = eventsocket.EventSocketRouter()
-matchmaking_router.register_listener('test', lambda d, s: s.emit('tooto', {'fads': 32}))
+
+def add_4(data, shared):
+    data['foo'] += 4
+    return data
+
+router = eventsocket.EventSocketRouter()
+
+router.on_open = lambda s: eventsocket.Sequence('test', s, [add_4, add_4]).register()
 
 app = tornado.web.Application([
     (r'/', IndexHandler),
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(PATH, '../static')}),
-    (r'/sockets/matchmaking/(.*)', eventsocket.EventSocketHandler, {'router': matchmaking_router})
+    (r'/sockets/matchmaking/(.*)', eventsocket.EventSocketHandler, {'router': router})
 ], template_path='../templates')
 
 

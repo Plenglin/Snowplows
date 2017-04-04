@@ -15,3 +15,35 @@ function onButtonClicked(param) {
 	var socket = new EventSocket($(location).attr('hostname'));
 	socket.emit('joining', {gamemode: param});
 }
+
+var socket, sequence;
+
+$(function() {
+
+    socket = new EventSocket('ws://' + $(location).attr('hostname') + '/sockets/matchmaking/fsda');
+    socket.on('websocket_connected', function() {
+
+	    sequence = new Sequence('test', socket, [
+	    	function(data) {
+	    		console.log(data);
+	    		return data;
+	    	},
+	    	function(data) {
+	    		console.log(data);
+	    		return data;
+	    	},
+	    	function(data) {
+	    		console.log(data);
+	    		return data;
+	    	},
+	    	function(data) {
+	    		console.log(data);
+	    		return data;
+	    	},
+	    ]).register();
+
+	    sequence.begin({foo: 3});
+
+	});
+
+});
