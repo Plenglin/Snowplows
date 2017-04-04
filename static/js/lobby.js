@@ -42,8 +42,6 @@ $(function() {
 	    	},
 	    ]).register();
 
-	    sequence.begin({foo: 3});
-
 	});
 
 });

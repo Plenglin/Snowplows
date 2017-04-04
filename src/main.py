@@ -23,7 +23,7 @@ def add_4(data, shared):
 
 router = eventsocket.EventSocketRouter()
 
-router.on_open = lambda s: eventsocket.Sequence('test', s, [add_4, add_4]).register()
+router.on_open = lambda s: eventsocket.Sequence('test', s, [add_4, add_4]).register().begin({'foo': 9})
 
 app = tornado.web.Application([
     (r'/', IndexHandler),

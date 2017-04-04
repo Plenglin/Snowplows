@@ -203,7 +203,7 @@ class Sequence:
         self.socket.router.register_listener(self.event_name, self._listener)
         return self
 
-    def begin(self, data, socket):
+    def begin(self, data):
         """
         Begin the transmission with a socket if the server is meant to start the sequence. If the client is supposed 
         to begin, do NOT use this method! 
