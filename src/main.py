@@ -14,7 +14,7 @@ PATH = os.getcwd()
 class IndexHandler(tornado.web.RequestHandler):
 
     def get(self):
-        self.render('html/index.html')
+        self.render('html/game.html')
 
 
 def add_4(data, shared):
