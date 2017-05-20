@@ -1,41 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
 
     <!-- Libraries and external sources -->
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-    <script src="/static/js/eventsocket.js" type="text/javascript"></script>
+    <script src="https://cdn.rawgit.com/alexei/sprintf.js/master/dist/sprintf.min.js"></script>
 
+    <!-- Utils -->
+    <script src="/static/js/util.js" type="text/javascript"></script>
     <!-- Lobby script -->
     <script src="/static/js/lobby.js" type="text/javascript"></script>
 
     <title>High Octane Elastic Snowplows</title>
 </head>
+
 <body>
 	<div class="jumbotron">
 		<div class="container">
 			<h1>High Octane Elastic Snowploughs</h1>
-            <h2>Gamemodes:</h2>
-			<button type="button" onClick="onButtonClicked(DUEL)" class="btn btn-default btn-lg">Duel</button>
-            <h3>Free-For-All</h3>
-			<button type="button" onClick="onButtonClicked(FFA_3)" class="btn btn-default btn-lg">3 players</button>
-			<button type="button" onClick="onButtonClicked(FFA_6)" class="btn btn-default btn-lg">6 players</button>
-			<button type="button" onClick="onButtonClicked(FFA_10)" class="btn btn-default btn-lg">10 players</button>
-            <h3>TDM</h3>
-			<button type="button" onClick="onButtonClicked(TDM_3)" class="btn btn-default btn-lg">3v3</button>
-			<button type="button" onClick="onButtonClicked(TDM_5)" class="btn btn-default btn-lg">5v5</button>
-            <h3>Other</h3>
-			<button type="button" onClick="customGame(CUSTOM)" class="btn btn-default btn-lg">Custom Game</button>
+            <div id="gamemodes">
+                <h2>Gamemodes:</h2>
+                {% for gm in gamemodes %}
+                    <button type="button" class="btn btn-default btn-lg" data-code="{{ gm.code }}" data-name="{{ gm.name }}">{{ gm.name }}</button>
+                {% end %}
+                <button type="button" class="btn btn-warning btn-lg">Custom Game</button>
+            </div>
 			<p id="people"></p>
 		</div>
 	</div>
+
 	<form id="token-form" action="/game" method="POST">
 		<input type="hidden" name="token">
 	</form>
+
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 	<script type="text/javascript">
 </script>
 </body>
+
 </html>

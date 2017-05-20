@@ -14,6 +14,12 @@ class ThreadsManager:
     """
 
     def __init__(self, thread_limit, games_per_thread, update_period):
+        """
+        
+        :param thread_limit: most number of threads this can make 
+        :param games_per_thread: how many games will we allow in each thread?
+        :param update_period: delay between updates in seconds
+        """
         self.threads = []
         self.thread_limit = thread_limit
         self.games_per_thread = games_per_thread
@@ -64,7 +70,7 @@ class ThreadsManager:
         """
         thr = self.next_thread_or_create()
         if thr is None:
-            raise FullError
+            raise OutOfSpaceError
         return thr.create_instance(), thr
 
     def create_room(self):
@@ -75,7 +81,7 @@ class ThreadsManager:
         thr = self.next_thread_or_create()
         if thr is not None:
             return thr.create_instance()
-        raise FullError
+        raise OutOfSpaceError
 
 
 class RoomCluster(threading.Thread):
@@ -116,10 +122,10 @@ class RoomCluster(threading.Thread):
             game_instance = game.GameInstance()
             self.games.append(game_instance)
             return game_instance
-        raise FullError
+        raise OutOfSpaceError
 
 
-class FullError(Exception):
+class OutOfSpaceError(Exception):
     """
     Thrown when something is too full.
     """
@@ -132,6 +138,6 @@ if __name__ == '__main__':
     for i in range(0, 30):
         try:
             inst, thr = man.create_game()
-        except FullError:
+        except OutOfSpaceError:
             inst, thr = None, None
         print(i, inst, thr)

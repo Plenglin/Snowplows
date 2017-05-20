@@ -1,35 +1,46 @@
-// Gamemode 'enum'
+// sprintf
 
-const DUEL = 'duel';
+var gamemodes, socket, mmId, state;
 
-const FFA_3 = 'ffa3';
-const FFA_6 = 'ffa6';
-const FFA_10 = 'ffa10';
+const INITIAL = 0;
+const FINDING = 1;
+const FILLING = 2;
 
-const TDM_3 = 'tdm3';
-const TDM_5 = 'tdm5';
-
-const CUSTOM = 'custom';
-
-function onButtonClicked(param) {
-	sequence.begin({gamemode: param})
-}
-
-var socket, sequence, mmId;
 
 $(function() {
 
-    socket = new EventSocket(websocket_path('socket/matchmaking'));
-    socket.on('websocket_connected', function() {
+	gamemodes = {};
 
-	    sequence = new Sequence('test', socket, [
-	    	function(data) {
-	    		mmId = data.playerId;
-	    		console.log('Recieved id: ' + mmId);
-	    		return;
-	    	},
-	    ]).register();
+	$('#gamemodes > button').each(function() {
+		var code = $(this).data('code');
+		var name = $(this).data('name');
+		gamemodes[code] = {code: code, name: name};
+	}).click(function() {
+		var gm = gamemodes[$(this).data('code')];
+		console.log(sprintf('selected gamemode %s', gm.code));
+		
+		state = INITIAL;
+		socket = new WebSocket(websocket_url('socket/matchmaking'));
+		socket.onopen = function() {
+			socket.send(gm.code);
+		};
+		socket.onmessage = function(event) {
+			switch (state) {
+				case INITIAL:
+				state = FINDING;
+				mmId = event.data;
+				console.log(sprintf('assigned id %s', mmId));
+				break;
+				case FINDING:
 
+				break;
+				case FILLING:
+
+				break;
+			}
+		};
 	});
+
+	console.log('found gamemodes: ', gamemodes);
 
 });

@@ -8,8 +8,8 @@ import time
 import pymunk
 from pymunk import Vec2d
 
-from . import util
-from .constants import *
+import util
+from constants import *
 
 
 class Player:
