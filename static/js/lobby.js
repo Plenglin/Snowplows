@@ -12,33 +12,21 @@ const TDM_5 = 'tdm5';
 const CUSTOM = 'custom';
 
 function onButtonClicked(param) {
-	var socket = new EventSocket($(location).attr('hostname'));
-	socket.emit('joining', {gamemode: param});
+	sequence.begin({gamemode: param})
 }
 
-var socket, sequence;
+var socket, sequence, mmId;
 
 $(function() {
 
-    socket = new EventSocket('ws://' + $(location).attr('hostname') + '/sockets/matchmaking/fsda');
+    socket = new EventSocket(websocket_path('socket/matchmaking'));
     socket.on('websocket_connected', function() {
 
 	    sequence = new Sequence('test', socket, [
 	    	function(data) {
-	    		console.log(data);
-	    		return data;
-	    	},
-	    	function(data) {
-	    		console.log(data);
-	    		return data;
-	    	},
-	    	function(data) {
-	    		console.log(data);
-	    		return data;
-	    	},
-	    	function(data) {
-	    		console.log(data);
-	    		return data;
+	    		mmId = data.playerId;
+	    		console.log('Recieved id: ' + mmId);
+	    		return;
 	    	},
 	    ]).register();
 

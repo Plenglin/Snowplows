@@ -99,6 +99,10 @@ class EventSocketRouter:
         except KeyError or IndexError:
             _logger.warning('No listener was found for event "%s"', event)
 
+    def broadcast(self, event, data):
+        for socket in self.sockets:
+            socket.emit(event, data)
+
 
 class EventSocketHandler(websocket.WebSocketHandler):
 
@@ -159,7 +163,7 @@ class Sequence:
     Create a new instance for every new sequence.
     """
 
-    def __init__(self, event_name: str, socket: EventSocketHandler, *listeners):
+    def __init__(self, event_name: str, socket: EventSocketHandler, listeners, shared_data=None):
         """
         Create a new ReceivingSequence. 
         
@@ -172,10 +176,12 @@ class Sequence:
         """
         self.event_name = event_name
         self.socket = socket
-        self.listeners = iter(*listeners)
+        self.listeners = iter(listeners)
+        if shared_data is None:
+            shared_data = {}
+        self.shared_data = shared_data
 
         self.messages = 0
-        self.shared_data = {}
         self.on_stop = lambda d: _logger.warning('%s stopped, no callback defined.', self)
 
     def __repr__(self):

@@ -40,3 +40,13 @@ DEAD_BODY_TYPE = 103
 PEOPLE_PER_GAME = 2  # TODO: CHANGE THIS BACK WHEN DONE DEBUGGING
 ROOM_NAME_LENGTH = 16
 TOKEN_LENGTH = 8
+
+# Matchmaking names
+DUEL = 'duel'
+
+FFA_3 = 'ffa3'
+FFA_6 = 'ffa6'
+FFA_10 = 'ffa10'
+
+TDM_3 = 'tdm3'
+TDM_5 = 'tdm5'
