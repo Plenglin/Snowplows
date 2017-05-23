@@ -26,17 +26,27 @@ $(function() {
 		};
 		socket.onmessage = function(event) {
 			switch (state) {
-				case INITIAL:
+
+			case INITIAL:
 				state = FINDING;
 				mmId = event.data;
 				console.log(sprintf('assigned id %s', mmId));
 				break;
-				case FINDING:
+
+			case FINDING:
+				var data = json.parse(event.data);
+				if (data.enough) {
+					console.log('enough players, waiting for ready');
+					state = FILLING;
+				} else {
+					console.log(sprintf('there are %s players', data.count));
+				}
+				break;
+
+			case FILLING:
 
 				break;
-				case FILLING:
 
-				break;
 			}
 		};
 	});

@@ -47,6 +47,17 @@ class Player:
         self.body.angle = val
 
 
+class Team:
+    """
+    A group of player(s) working together to get points
+    """
+    def __init__(self):
+        self.players = []
+
+    def __iter__(self):
+        return self.players
+
+
 class GameInstance:
     """
     A single instance of the game. Only handles game updates and stuff. Nothing else. After all, we don't want a god
@@ -54,12 +65,18 @@ class GameInstance:
     """
 
     def __init__(self):
-        self.players = []
+        self.teams = []
         self.space = pymunk.Space()
         self.room_name = util.random_string(ROOM_NAME_LENGTH)
 
         # Listeners
         self.on_death = lambda p: None
+
+    @property
+    def players(self):
+        for t in self.teams:
+            for p in t:
+                yield p
 
     def init(self):
 
@@ -156,7 +173,7 @@ class GameInstance:
                 return p
         return None
 
-    def create_player(self, player_id):
+    def create_player(self, team, player_id):
 
         # Create the body
         body = pymunk.Body(PLAYER_MASS, 1666)

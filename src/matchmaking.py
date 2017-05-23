@@ -21,6 +21,9 @@ class LobbyPlayer:
         self.id = util.random_string(constants.MM_ID_LENGTH)
         self.gamemode = None
 
+    def notify_enough_players(self):
+        self.socket.on_enough_players()
+
 
 class Gamemode:
 
@@ -61,6 +64,9 @@ class Matchmaker:
 
     def __str__(self):
         return 'Matchmaker({})'.format(self.gamemode)
+
+    def player_count(self):
+        return self.players.qlen()
 
     def begin(self):
         self._periodic_callback.start()
