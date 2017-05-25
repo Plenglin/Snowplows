@@ -19,7 +19,7 @@ class LobbyPlayer:
     def __init__(self, socket, gamemode):
         self.socket = socket
         self.id = util.random_string(constants.MM_ID_LENGTH)
-        self.gamemode = None
+        self.gamemode: Gamemode = gamemode
 
     def notify_enough_players(self):
         self.socket.on_enough_players()

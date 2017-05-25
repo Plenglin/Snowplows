@@ -17,6 +17,6 @@ def offset_box(cx, cy, length, width):
     return [(x1, y1), (x1, y2), (x2, y2), (x2, y1)]
 
 
-def random_string(n, charset=LETTERS):
+def random_string(n, charset=LETTERS) -> str:
     return ''.join(random.choice(charset) for _ in range(n))
 
