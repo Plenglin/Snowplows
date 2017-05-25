@@ -3,6 +3,7 @@ import logging
 import enum
 
 import tornado
+import tornado.ioloop
 from tornado import websocket
 
 import constants
@@ -46,7 +47,7 @@ class LobbyPlayerConnection(websocket.WebSocketHandler):
                 self.close(1002, 'Invalid gamemode')
                 return
 
-            self.lobby_player = matchmaking.LobbyPlayer(self, self.mmer.gamemode)
+            self.lobby_player = matchmaking.LobbyPlayer(self, self.mmer.gamemode, constants.ID_LENGTH)
             self.mmer.add_player(self.lobby_player)
             self.log.info('%s assigned id %s', self.request.remote_ip, self.lobby_player.id)
             self.write_message(bytes(self.lobby_player.id, encoding='utf-8'))

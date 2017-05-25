@@ -5,6 +5,7 @@ import logging
 import os
 
 import tornado.ioloop
+import tornado.web
 
 import constants
 import matchmaking
@@ -19,24 +20,24 @@ GAMEMODES = [
     matchmaking.Gamemode('3-player FFA', 'ffa6', 6, 1),
     matchmaking.Gamemode('3-player FFA', 'ffa10', 10, 1),
     matchmaking.Gamemode('3v3 TDM', 'tdm3', 2, 3),
-    matchmaking.Gamemode('5v5 TDM', 'tdm5', 2, 3),
+    matchmaking.Gamemode('5v5 TDM', 'tdm5', 2, 5),
 ]
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG if constants.DEBUG_MODE else logging.INFO)
 
 
 class GameManager:
 
-    def __init__(self, gamemodes, update_period, matchmaking_update_period):
+    def __init__(self, gamemodes,
+                 threads_update_period=constants.ID_LENGTH, matchmaking_update_period=constants.MM_UPDATE_PERIOD):
         self.gamemodes = gamemodes
 
-        self.thread_man = threadmanager.ThreadsManager(10, 5, update_period)
-        self.mmers = [matchmaking.Matchmaker(gm, constants.MM_UPDATE_PERIOD, self.thread_man) for gm in gamemodes]
+        self.thread_man = threadmanager.ThreadsManager(10, 5, threads_update_period)
+        self.mmers = [matchmaking.Matchmaker(gm, matchmaking_update_period, self.thread_man) for gm in gamemodes]
 
     def init(self):
         for mm in self.mmers:
-            mm.begin()
+            mm.init()
 
 
 
@@ -55,7 +56,9 @@ def get_app():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG if constants.DEBUG_MODE else logging.INFO)
+    log.info('starting server...')
     app = get_app()
-    log.info('Starting server')
-    app.listen(80)
+    app.listen(constants.PORT)
+    log.info('server listening on port %s', constants.PORT)
     tornado.ioloop.IOLoop.current().start()

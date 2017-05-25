@@ -3,48 +3,11 @@ import os
 # How long between pings before a player is considered disconnected
 TIMEOUT = 10 # NYI
 
-# Physics parameters
-UPDATE_PERIOD = 0.025
-BOOST_DURATION = 1.5
-BOOST_COOLDOWN = 5
-
-BOOST_FORCE = 50.0
-NORMAL_FORCE = 25.0
-
-FRICTION = 20
-
-BOOST_MAX_SPEED = 600
-BRAKE_MAX_SPEED = 100
-DEAD_MAX_SPEED = 1500
-MAX_SPEED = 250.0
-MIN_SPEED = 5
-
-PLAYER_MASS = 1.0
-
-# Dimensions
-ARENA_WIDTH = 1000
-ARENA_HEIGHT = 500
-ARENA_THICKNESS = 100
-
-TRUCK_PLOW_WIDTH = 30
-TRUCK_PLOW_LENGTH = 20
-TRUCK_BODY_SPACING = 0 	# How much empty space between the plow and the body
-TRUCK_BODY_WIDTH = 10
-TRUCK_BODY_LENGTH = 30
-
-# Collision detection types
-TRUCK_PLOW_TYPE = 100
-TRUCK_CORE_TYPE = 101
-ARENA_BORDER_TYPE = 102
-DEAD_BODY_TYPE = 103
-
 # Matchmaking Parameters
 PEOPLE_PER_GAME = 2  # TODO: CHANGE THIS BACK WHEN DONE DEBUGGING
-ROOM_NAME_LENGTH = 16
-TOKEN_LENGTH = 16
-MM_ID_LENGTH = 16
-PLAYER_ID_LENGTH = 16
 MM_UPDATE_PERIOD = 1
+ID_LENGTH = 16
 
 # Environment Variables
 DEBUG_MODE = bool(int(os.environ.get('DEBUG', 0)))
+PORT = int(os.environ.get('PORT', 8080))

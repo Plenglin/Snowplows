@@ -6,7 +6,6 @@ import queue
 
 import tornado.ioloop
 
-import constants
 import game
 import threadmanager
 import util
@@ -16,9 +15,9 @@ log = logging.getLogger('matchmaking')
 
 class LobbyPlayer:
 
-    def __init__(self, socket, gamemode):
+    def __init__(self, socket, gamemode, id_len):
         self.socket = socket
-        self.id = util.random_string(constants.MM_ID_LENGTH)
+        self.id = util.random_string(id_len)
         self.gamemode: Gamemode = gamemode
 
     def notify_enough_players(self):
@@ -62,13 +61,14 @@ class Matchmaker:
         self.players = queue.Queue()
         self._periodic_callback = tornado.ioloop.PeriodicCallback(self.fill_game, self.update_period)
 
-    def __str__(self):
+    def __repr__(self):
         return 'Matchmaker({})'.format(self.gamemode)
 
     def player_count(self):
-        return self.players.qlen()
+        return self.players.qsize()
 
-    def begin(self):
+    def init(self):
+        log.debug('initializing %s', self)
         self._periodic_callback.start()
 
     def add_player(self, player):
@@ -83,5 +83,3 @@ class Matchmaker:
                 filled_players = self.gamemode.fill_game(self.players, game)
             except threadmanager.OutOfSpaceError:
                 log.info('%s could not create game because there are not enough slots.', self)
-
-log.setLevel(logging.DEBUG if constants.DEBUG_MODE else logging.INFO)

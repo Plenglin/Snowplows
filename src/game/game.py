@@ -1,17 +1,15 @@
-"""Code that runs the actual game itself. It should be as independent from the graphics and client-server interface 
-as possible. """
+"""Code that runs the actual game itself. It should be independent from the graphics, client-server interface, and
+matchmaking as much as possible. """
 import math
 import random
-import threading
 import time
-
-from typing import List, Iterable
 
 import pymunk
 from pymunk import Vec2d
+from typing import List, Iterable
 
 import util
-from constants import *
+from .constants import *
 
 
 class Player:
@@ -55,9 +53,9 @@ class Player:
 
     def get_boost_level(self):
         if self.is_boosting():
-            return 1 - min(1, (time.time() - self.began_boost) / BOOST_DURATION)
+            return 1 - min(1.0, (time.time() - self.began_boost) / BOOST_DURATION)
         else:
-            return min(1, (time.time() - (self.began_boost + BOOST_DURATION)) / BOOST_COOLDOWN)
+            return min(1.0, (time.time() - (self.began_boost + BOOST_DURATION)) / BOOST_COOLDOWN)
 
     @property
     def rotation(self):
@@ -131,7 +129,6 @@ class GameInstance:
     def __init__(self):
         self.teams: List[Team] = []
         self.space = pymunk.Space()
-        self.room_name = util.random_string(ROOM_NAME_LENGTH)
         self.frames = 0
 
         # Listeners
@@ -237,18 +234,6 @@ class GameInstance:
         t = Team(self, util.random_string(PLAYER_ID_LENGTH))
         self.teams.append(t)
         return t
-
-
-class RoomThread(threading.Thread):
-    def __init__(self, room):
-        super().__init__()
-        self.room = room
-
-    def run(self):
-        self.room.init()
-        while True:
-            self.room.update(UPDATE_PERIOD)
-            time.sleep(UPDATE_PERIOD)
 
 
 if __name__ == '__main__':

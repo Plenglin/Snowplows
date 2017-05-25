@@ -5,7 +5,12 @@ import asyncio
 import threading
 import time
 
+import logging
+
 import game
+
+
+log = logging.getLogger(__name__)
 
 
 class ThreadsManager:
@@ -15,7 +20,6 @@ class ThreadsManager:
 
     def __init__(self, thread_limit, games_per_thread, update_period):
         """
-        
         :param thread_limit: most number of threads this can make 
         :param games_per_thread: how many games will we allow in each thread?
         :param update_period: delay between updates in seconds
@@ -47,6 +51,7 @@ class ThreadsManager:
         Create a thread. This ignores can_create_thread.
         :return:
         """
+        log.debug('%s creating new thread', self)
         thread = RoomCluster(self.games_per_thread, self.update_period)
         self.threads.append(thread)
         return thread
@@ -57,6 +62,7 @@ class ThreadsManager:
         creates one and returns it. Otherwise, returns None.
         :return:
         """
+        log.debug('%s finding next thread')
         thr = self.next_available_thread()
         if thr is None and self.can_create_thread():
             return self.create_thread()
@@ -68,20 +74,12 @@ class ThreadsManager:
         FullError.
         :return: 
         """
+        log.debug('%s attempting to create new game')
         thr = self.next_thread_or_create()
         if thr is None:
+            log.debug('%s could not create game, raising error')
             raise OutOfSpaceError
         return thr.create_instance(), thr
-
-    def create_room(self):
-        """
-        Creates a new game and returns it if it could do so. Raises a FullError if it could not.
-        :return:
-        """
-        thr = self.next_thread_or_create()
-        if thr is not None:
-            return thr.create_instance()
-        raise OutOfSpaceError
 
 
 class RoomCluster(threading.Thread):
