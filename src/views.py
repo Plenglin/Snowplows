@@ -19,5 +19,14 @@ class GameView(tornado.web.RequestHandler):
     def initialize(self):
         pass
 
-    def post(self):
+    def post(self, *args, **kwargs):
         pass
+
+
+class DevView(tornado.web.RequestHandler):
+
+    def initialize(self):
+        pass
+
+    def get(self):
+        self.render('game.html', socket_url='socket/game/dev', token=constants.DEV_TOKEN)

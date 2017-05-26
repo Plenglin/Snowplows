@@ -35,10 +35,14 @@ class GameManager:
         self.thread_man = threadmanager.ThreadsManager(10, 5, threads_update_period)
         self.mmers = [matchmaking.Matchmaker(gm, matchmaking_update_period, self.thread_man) for gm in gamemodes]
 
+        self.tokens = {}
+
     def init(self):
         for mm in self.mmers:
             mm.init()
 
+    def get_game_with_token(self, token):
+        pass
 
 
 def get_app():
@@ -49,9 +53,11 @@ def get_app():
     return tornado.web.Application([
         (r'/', views.MatchmakingView, {'gamemodes': manager.gamemodes}),
         (r'/game', views.GameView),
+        (r'/supersecretdev', views.DevView),
         (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(PATH, '../static')}),
         (r'/socket/matchmaking', sockets.LobbyPlayerConnection, {'manager': manager}),
-        (r'/socket/game/dev', sockets.GamePlayerConnection)
+        (r'/socket/game', sockets.GamePlayerConnection),
+        (r'/socket/game/dev', sockets.GamePlayerConnection),
     ], template_path='../views')
 
 

@@ -29,6 +29,11 @@ class ThreadsManager:
         self.games_per_thread = games_per_thread
         self.update_period = update_period
 
+    def games(self):
+        for t in self.threads:
+            for g in t:
+                yield g
+
     def next_available_thread(self):
         """
         Find the next thread with an empty slot
@@ -93,6 +98,10 @@ class RoomCluster(threading.Thread):
         self.games_limit = games_limit
         self.event_loop = asyncio.new_event_loop()
         self.update_period = update_period
+
+    def __iter__(self):
+        for g in self.games:
+            yield g
 
     def run(self):
         while True:

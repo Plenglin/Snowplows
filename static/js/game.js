@@ -1,4 +1,46 @@
-var drawingCanvas, bufferCanvas, ctx, bctx;
+var drawingCanvas, bufferCanvas, ctx, bctx, socket, socketstate;
+
+const OPENING = 0;
+const GAME = 1;
+const CLOSING = 2;
+
+$(function() {
+	/*
+	drawingCanvas = $('#gameCanvas')[0];
+	ctx = drawingCanvas.getContext('2d');
+
+	drawingCanvas.width = $(window).width();
+	drawingCanvas.height = $(window).height();
+
+	bufferCanvas = $('#bufferCanvas')[0];
+	bctx = bufferCanvas.getContext('2d');
+	img = new Image();
+	img.onload = function() {
+		drawImgWithTint(this, '#FF0000', 1, 0, 0);
+	}
+	img.src = '/static/img/truckBase.svg';
+	*/
+	socket = new WebSocket(websocket_url($('head').data('socket-url')));
+	socket.onopen = function() {
+		socket.send({
+			token: $('head').data('token')
+		)};
+	}
+	socket.onmessage = function(event) {
+
+		var data = JSON.parse(event.data);
+		switch (state) {
+		case OPENING:
+			data.
+			break;
+		case GAME:
+			break;
+		case CLOSING:
+			break;
+		}
+	}
+
+});
 
 function drawPlayer(argument) {
 	// body...
@@ -31,19 +73,3 @@ function drawImgWithTint(img, tint, alpha, x, y, w, h) {
     ctx.globalAlpha = alpha;
     ctx.drawImage(bufferCanvas, 0, 0);
 }
-
-$(function() {
-	drawingCanvas = $('#gameCanvas')[0];
-	ctx = drawingCanvas.getContext('2d');
-
-	drawingCanvas.width = $(window).width();
-	drawingCanvas.height = $(window).height();
-
-	bufferCanvas = $('#bufferCanvas')[0];
-	bctx = bufferCanvas.getContext('2d');
-	img = new Image();
-	img.onload = function() {
-		drawImgWithTint(this, '#FF0000', 1, 0, 0);
-	}
-	img.src = '/static/img/truckBase.svg';
-});
