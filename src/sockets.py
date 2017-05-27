@@ -62,7 +62,7 @@ class LobbyPlayerConnection(websocket.WebSocketHandler):
         elif self.state == LobbyState.FILLING:
             pass
         else:
-            raise ValueError
+            raise ValueError('Enum out of range')
 
     def notify_player_count(self):
         count = self.mmer.player_count()
@@ -81,18 +81,36 @@ class LobbyPlayerConnection(websocket.WebSocketHandler):
 
 class GamePlayerConnection(websocket.WebSocketHandler):
 
-    def initialize(self):
+    log = logging.getLogger('GameSocket')
+
+    def initialize(self, manager):
+        self.manager = manager
+
         self.state = GameState.OPENING
 
+    def open(self, *args, **kwargs):
+        self.log.info('client connected from ip %s', self.request.remote_ip)
+
     def on_message(self, msg):
-        data = json.loads(msg)
+        try:
+            data = json.loads(msg)
+            self.log.debug('rcv %s from %s', data, self.request.remote_ip)
+        except json.decoder.JSONDecodeError:
+            self.close(1002, 'invalid json')
+            self.log.error('invalid json %s', msg)
+            return
+
         if self.state == GameState.OPENING:
-            pass
+            token = data['token']
+            self.log.debug('client %s sent token %s', self.request.remote_ip, token)
+            pid = 1
+            self.log.info('client %s is player %s', self.request.remote_ip, pid)
         elif self.state == GameState.GAME:
             pass
         elif self.state == GameState.CLOSING:
             pass
         else:
-            raise ValueError
+            raise ValueError('Enum out of range')
 
 LobbyPlayerConnection.log.setLevel(logging.DEBUG if constants.DEBUG_MODE else logging.WARN)
+GamePlayerConnection.log.setLevel(logging.DEBUG if constants.DEBUG_MODE else logging.WARN)

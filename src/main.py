@@ -41,7 +41,11 @@ class GameManager:
         for mm in self.mmers:
             mm.init()
 
-    def get_game_with_token(self, token):
+    def get_game_with_id(self, g_id: str):
+        for g in self.thread_man.games():
+            pass
+
+    def get_player_with_token(self, token: str):
         pass
 
 
@@ -51,19 +55,20 @@ def get_app():
     manager.init()
 
     return tornado.web.Application([
-        (r'/', views.MatchmakingView, {'gamemodes': manager.gamemodes}),
+        (r'/', views.MatchmakingView, {'manager': manager}),
         (r'/game', views.GameView),
         (r'/supersecretdev', views.DevView),
         (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(PATH, '../static')}),
         (r'/socket/matchmaking', sockets.LobbyPlayerConnection, {'manager': manager}),
-        (r'/socket/game', sockets.GamePlayerConnection),
-        (r'/socket/game/dev', sockets.GamePlayerConnection),
+        (r'/socket/game', sockets.GamePlayerConnection, {'manager': manager}),
+        (r'/socket/game/dev', sockets.GamePlayerConnection, {'manager': manager}),
     ], template_path='../views')
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG if constants.DEBUG_MODE else logging.INFO)
     log.info('starting server...')
+    log.info('debug mode: %s', constants.DEBUG_MODE)
     app = get_app()
     app.listen(constants.PORT)
     log.info('server listening on port %s', constants.PORT)

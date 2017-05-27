@@ -6,6 +6,7 @@ import threading
 import time
 
 import logging
+from typing import Iterable
 
 import game
 
@@ -29,7 +30,7 @@ class ThreadsManager:
         self.games_per_thread = games_per_thread
         self.update_period = update_period
 
-    def games(self):
+    def games(self) -> Iterable[game.GameInstance]:
         for t in self.threads:
             for g in t:
                 yield g

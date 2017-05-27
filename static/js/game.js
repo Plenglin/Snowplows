@@ -20,18 +20,21 @@ $(function() {
 	}
 	img.src = '/static/img/truckBase.svg';
 	*/
-	socket = new WebSocket(websocket_url($('head').data('socket-url')));
+	var url = websocketUrl($('head').data('socket-url'));
+	console.log('opening socket on url ' + url);
+	socket = new WebSocket(url);
 	socket.onopen = function() {
-		socket.send({
-			token: $('head').data('token')
-		)};
+		var token = $('head').data('token');
+		console.log('socket connected, sending token ' + token);
+		socket.send(JSON.stringify({
+			token: token
+		}));
 	}
 	socket.onmessage = function(event) {
 
 		var data = JSON.parse(event.data);
 		switch (state) {
 		case OPENING:
-			data.
 			break;
 		case GAME:
 			break;
