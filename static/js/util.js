@@ -1,5 +1,5 @@
 // global $
 
-function websocket_url(path) {
+function websocketUrl(path) {
 	return 'ws://' + $(location).attr('host') + '/' + path
 }

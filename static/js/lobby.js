@@ -20,7 +20,7 @@ $(function() {
 		console.log(sprintf('selected gamemode %s', gm.code));
 		
 		state = INITIAL;
-		socket = new WebSocket(websocket_url('socket/matchmaking'));
+		socket = new WebSocket(websocketUrl('socket/matchmaking'));
 		socket.onopen = function() {
 			socket.send(gm.code);
 		};
