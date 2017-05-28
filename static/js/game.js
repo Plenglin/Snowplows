@@ -20,7 +20,7 @@ $(function() {
 	}
 	img.src = '/static/img/truckBase.svg';
 	*/
-	socket = new WebSocket(websocket_url($('head').data('socket-url')));
+	socket = new WebSocket(websocketUrl($('head').data('socket-url')));
 	socket.onopen = function() {
     	socketstate = OPENING;
 		socket.send(JSON.stringify({
