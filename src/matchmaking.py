@@ -6,6 +6,7 @@ import queue
 
 import tornado.ioloop
 
+import constants
 import game
 import threadmanager
 import util
@@ -19,9 +20,6 @@ class LobbyPlayer:
         self.socket = socket
         self.id = util.random_string(id_len)
         self.gamemode: Gamemode = gamemode
-
-    def notify_enough_players(self):
-        self.socket.on_enough_players()
 
 
 class Gamemode:
@@ -42,9 +40,15 @@ class Gamemode:
     def total_players(self):
         return self.team_count * self.players_per_team
 
-    def fill_game(self, players: queue.Queue(LobbyPlayer), inst: game.GameInstance):
-        # TODO: Fill this in when we have teams in games
-        return []
+    def fill_game(self, players, inst: game.GameInstance):
+        out = []
+        for t in range(self.team_count):
+            team = inst.create_team()
+            for p in range(self.players_per_team):
+                lobby_player = players.get()
+                game_player = team.create_player()
+                out.append((lobby_player, game_player))
+        return out
 
 
 class Matchmaker:
@@ -52,10 +56,10 @@ class Matchmaker:
     Handles the matchmaking for a single gamemode
     """
 
-    def __init__(self, gamemode: Gamemode, update_period: float, thread_man: threadmanager.ThreadsManager):
+    def __init__(self, gamemode: Gamemode, update_period: float, manager):
         self.update_period = update_period
         self.gamemode = gamemode
-        self.thread_man = thread_man
+        self.manager = manager
 
         self.next_id = 0
         self.players = queue.Queue()
@@ -79,7 +83,14 @@ class Matchmaker:
         if player_count >= self.gamemode.total_players:
             log.info('%s has enough players (%s/%s) for a new game', self, player_count, self.gamemode.total_players)
             try:
-                game = self.thread_man.create_game()
-                filled_players = self.gamemode.fill_game(self.players, game)
+                game_id, room_cluster = self.manager.thread_man.create_game()
+                inst = self.manager.thread_man.get_game(game_id)
+                log.debug('created game %s', game)
+                filled_players = self.gamemode.fill_game(self.players, inst)
+                for lob, player in filled_players:
+                    token = util.random_string(constants.ID_LENGTH)
+                    self.manager.tokens[token] = game_id, player.id
+                    lob.socket.on_enough_players(token)
+
             except threadmanager.OutOfSpaceError:
                 log.info('%s could not create game because there are not enough slots.', self)

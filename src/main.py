@@ -17,8 +17,8 @@ PATH = os.getcwd()
 GAMEMODES = [
     matchmaking.Gamemode('Duel', 'duel', 2, 1),
     matchmaking.Gamemode('3-player FFA', 'ffa3', 3, 1),
-    matchmaking.Gamemode('3-player FFA', 'ffa6', 6, 1),
-    matchmaking.Gamemode('3-player FFA', 'ffa10', 10, 1),
+    matchmaking.Gamemode('6-player FFA', 'ffa6', 6, 1),
+    matchmaking.Gamemode('10-player FFA', 'ffa10', 10, 1),
     matchmaking.Gamemode('3v3 TDM', 'tdm3', 2, 3),
     matchmaking.Gamemode('5v5 TDM', 'tdm5', 2, 5),
 ]
@@ -33,7 +33,7 @@ class GameManager:
         self.gamemodes = gamemodes
 
         self.thread_man = threadmanager.ThreadsManager(10, 5, threads_update_period)
-        self.mmers = [matchmaking.Matchmaker(gm, matchmaking_update_period, self.thread_man) for gm in gamemodes]
+        self.mmers = [matchmaking.Matchmaker(gm, matchmaking_update_period, self) for gm in gamemodes]
 
         self.tokens = {}
 
@@ -51,13 +51,16 @@ def get_app():
     manager.init()
 
     return tornado.web.Application([
-        (r'/', views.MatchmakingView, {'gamemodes': manager.gamemodes}),
-        (r'/game', views.GameView),
-        (r'/supersecretdev', views.DevView),
+
         (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(PATH, '../static')}),
+
+        (r'/', views.MatchmakingView, {'manager': manager}),
+        (r'/game', views.GameView, {'manager': manager}),
+
         (r'/socket/matchmaking', sockets.LobbyPlayerConnection, {'manager': manager}),
-        (r'/socket/game', sockets.GamePlayerConnection),
-        (r'/socket/game/dev', sockets.GamePlayerConnection),
+        (r'/socket/game', sockets.GamePlayerConnection, {'manager': manager}),
+        (r'/socket/game/dev', sockets.GamePlayerConnection, {'manager': manager}),
+
     ], template_path='../views')
 
 

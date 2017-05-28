@@ -34,9 +34,11 @@ $(function() {
 				break;
 
 			case FINDING:
-				var data = json.parse(event.data);
+				var data = JSON.parse(event.data);
 				if (data.enough) {
 					console.log('enough players, waiting for ready');
+					$('#token').val(data.token);
+					$('#token-form').submit();
 					state = FILLING;
 				} else {
 					console.log(sprintf('there are %s players', data.count));

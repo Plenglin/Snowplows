@@ -10,6 +10,9 @@ import constants
 import matchmaking
 
 
+log = logging.getLogger(__name__)
+
+
 class LobbyState(enum.Enum):
     INITIAL = 0
     FINDING = 1
@@ -24,36 +27,34 @@ class GameState(enum.Enum):
 
 class LobbyPlayerConnection(websocket.WebSocketHandler):
 
-    log = logging.getLogger('LobbySocket')
-
     # noinspection PyMethodOverriding
-    def initialize(self, mmers):
-        self.mmers = mmers
+    def initialize(self, manager):
+        self.manager = manager
         self.state = LobbyState.INITIAL
         self.gamemode = None
         self.queue_notifier = None
 
     def open(self, *args, **kwargs):
-        self.log.debug('client connected from IP %s', self.request.remote_ip)
+        log.debug('client connected from IP %s', self.request.remote_ip)
 
     def on_message(self, msg):
         if self.state == LobbyState.INITIAL:
 
             try:
-                self.mmer = [mmer for mmer in self.mmers if mmer.gamemode.code == msg][0]
-                self.log.info('%s requests gamemode %s', self.request.remote_ip, msg)
+                self.mmer = [mmer for mmer in self.manager.mmers if mmer.gamemode.code == msg][0]
+                log.info('%s requests gamemode %s', self.request.remote_ip, msg)
             except IndexError:
-                self.log.warning('%s sent invalid gamemode %s', self.request.remote_ip, msg)
+                log.warning('%s sent invalid gamemode %s', self.request.remote_ip, msg)
                 self.close(1002, 'Invalid gamemode')
                 return
 
             self.lobby_player = matchmaking.LobbyPlayer(self, self.mmer.gamemode, constants.ID_LENGTH)
             self.mmer.add_player(self.lobby_player)
-            self.log.info('%s assigned id %s', self.request.remote_ip, self.lobby_player.id)
-            self.write_message(bytes(self.lobby_player.id, encoding='utf-8'))
+            log.info('%s assigned id %s', self.request.remote_ip, self.lobby_player.id)
+            self.write_message(self.lobby_player.id)
 
-            self.log.debug('starting queue length notification for %s', self.lobby_player.id)
-            self.queue_notifier = tornado.ioloop.PeriodicCallback(self.notify_player_count, 5)
+            log.debug('starting queue length notification for %s', self.lobby_player.id)
+            self.queue_notifier = tornado.ioloop.PeriodicCallback(self.notify_player_count, 3000)
             self.queue_notifier.start()
 
         elif self.state == LobbyState.FINDING:
@@ -61,38 +62,65 @@ class LobbyPlayerConnection(websocket.WebSocketHandler):
 
         elif self.state == LobbyState.FILLING:
             pass
+
         else:
-            raise ValueError
+            raise ValueError('Something went wrong with the state machine in LobbyPlayerConnection')
 
     def notify_player_count(self):
         count = self.mmer.player_count()
-        self.log.debug('notifying %s about player queue', self.lobby_player.id)
-        self.write_message(bytes(json.dumps({'count': count, 'enough': False})))
+        log.debug('notifying %s about player queue', self.lobby_player.id)
+        self.write_message(json.dumps({'count': count, 'enough': False}))
 
     def on_close(self):
         pass
 
-    def on_enough_players(self):
-        self.log.debug('notifying %s about enough players', self.lobby_player.id)
-        self.write_message(bytes(json.dumps({'count': 0, 'enough': True})))
+    def on_enough_players(self, token:str):
+        log.debug('notifying %s about enough players', self.lobby_player.id)
+        self.write_message(json.dumps({'count': 0, 'enough': True, 'token': token}))
         self.queue_notifier.stop()
         self.state = LobbyState.FILLING
 
 
 class GamePlayerConnection(websocket.WebSocketHandler):
 
-    def initialize(self):
+    # noinspection PyMethodOverriding
+    def initialize(self, manager):
         self.state = GameState.OPENING
+        self.manager = manager
+        self.player_id = None
+        self.game_inst = None
 
     def on_message(self, msg):
+
         data = json.loads(msg)
+
         if self.state == GameState.OPENING:
-            pass
+            try:
+                token = data['token']
+            except KeyError:
+                self.send_error(400)
+                log.warning('client %s did not send a token', self.request.remote_ip)
+                return
+            try:
+                self.game_inst, self.player_id = self.manager.tokens[token]
+                log.debug('client %s sent valid token %s', self.request.remote_ip, token)
+            except KeyError:
+                self.send_error(400)
+                log.warning('client %s sent invalid token %s', self.request.remote_ip, token)
+                return
+            self.state = GameState.GAME
+            self.write_message(json.dumps({
+                'valid': True,
+                'id': self.player_id
+            }))
+
         elif self.state == GameState.GAME:
             pass
+
         elif self.state == GameState.CLOSING:
             pass
-        else:
-            raise ValueError
 
-LobbyPlayerConnection.log.setLevel(logging.DEBUG if constants.DEBUG_MODE else logging.WARN)
+        else:
+            raise ValueError('Something went wrong with the state machine in GamePlayerConnection')
+
+log.setLevel(logging.DEBUG if constants.DEBUG_MODE else logging.WARN)

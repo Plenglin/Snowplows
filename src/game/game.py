@@ -127,7 +127,7 @@ class GameInstance:
     """
 
     def __init__(self):
-        self.teams: List[Team] = []
+        self.teams = []
         self.space = pymunk.Space()
         self.frames = 0
 

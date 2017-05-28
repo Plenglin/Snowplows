@@ -1,4 +1,4 @@
-var drawingCanvas, bufferCanvas, ctx, bctx, socket, socketstate;
+var drawingCanvas, bufferCanvas, ctx, bctx, socket, socketstate, playerId;
 
 const OPENING = 0;
 const GAME = 1;
@@ -22,16 +22,23 @@ $(function() {
 	*/
 	socket = new WebSocket(websocket_url($('head').data('socket-url')));
 	socket.onopen = function() {
-		socket.send({
+    	socketstate = OPENING;
+		socket.send(JSON.stringify({
 			token: $('head').data('token')
-		)};
+		}));
 	}
 	socket.onmessage = function(event) {
 
 		var data = JSON.parse(event.data);
-		switch (state) {
+		console.log('received', data);
+		switch (socketstate) {
 		case OPENING:
-			data.
+			if (data.valid) {
+			    playerId = data.id;
+			    console.log('token acknowledged');
+			    console.log(sprintf('player id is %s', playerId));
+			    socketstate = GAME;
+			}
 			break;
 		case GAME:
 			break;

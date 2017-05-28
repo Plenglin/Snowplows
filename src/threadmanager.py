@@ -2,13 +2,13 @@
 The code that manages all the multiple threads and games per thread.
 """
 import asyncio
+import logging
 import threading
 import time
 
-import logging
-
+import constants
 import game
-
+import util
 
 log = logging.getLogger(__name__)
 
@@ -24,10 +24,15 @@ class ThreadsManager:
         :param games_per_thread: how many games will we allow in each thread?
         :param update_period: delay between updates in seconds
         """
-        self.threads = []
         self.thread_limit = thread_limit
         self.games_per_thread = games_per_thread
         self.update_period = update_period
+
+        self.threads = []
+        self.game_registry = {}
+
+    def __repr__(self):
+        return 'ThreadsManager({})'.format(id(self))
 
     def games(self):
         for t in self.threads:
@@ -84,7 +89,25 @@ class ThreadsManager:
         if thr is None:
             log.debug('%s could not create game, raising error')
             raise OutOfSpaceError
-        return thr.create_instance(), thr
+        game = thr.create_instance()
+        game_id = util.random_string(constants.ID_LENGTH)
+        self.game_registry[game_id] = game
+        return game_id, thr
+
+    def get_game(self, id: str):
+        return self.game_registry.get(id)
+
+    def remove_game(self, id: str):
+        game = self.game_registry[id]
+        for t in self.threads:
+            for g in t:
+                if g is game:
+                    del self.game_registry[id]
+                    break
+            else:
+                break
+        else:
+            raise LookupError('game_registry and actual contents do not match')
 
 
 class RoomCluster(threading.Thread):
@@ -120,7 +143,7 @@ class RoomCluster(threading.Thread):
         """
         return len(self.games) < self.games_limit
 
-    def create_instance(self):
+    def create_instance(self) -> game.GameInstance:
         """
         Create a new game instance and return it. Raises a FullError if it could not.
         :return:
