@@ -4,12 +4,16 @@ import math
 import random
 import time
 
+import logging
 import pymunk
 from pymunk import Vec2d
 from typing import List, Iterable
 
 import util
 from .constants import *
+
+
+log = logging.getLogger(__name__)
 
 
 class Player:
@@ -126,10 +130,11 @@ class GameInstance:
     object. Handle communication somewhere else.
     """
 
-    def __init__(self):
+    def __init__(self, g_id):
         self.teams = []
         self.space = pymunk.Space()
         self.frames = 0
+        self.id = g_id
 
         # Listeners
         self.on_death = lambda p: None
@@ -142,6 +147,8 @@ class GameInstance:
                 yield p
 
     def init(self):
+
+        log.debug('%s initializing', self.id)
 
         # Create collision handlers...
         # Between a plow and a truck body

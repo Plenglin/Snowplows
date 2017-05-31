@@ -89,8 +89,8 @@ class ThreadsManager:
         if thr is None:
             log.debug('%s could not create game, raising error')
             raise OutOfSpaceError
-        game = thr.create_instance()
         game_id = util.random_string(constants.ID_LENGTH)
+        game = thr.create_instance(game_id)
         self.game_registry[game_id] = game
         return game_id, thr
 
@@ -143,13 +143,13 @@ class RoomCluster(threading.Thread):
         """
         return len(self.games) < self.games_limit
 
-    def create_instance(self) -> game.GameInstance:
+    def create_instance(self, g_id) -> game.GameInstance:
         """
         Create a new game instance and return it. Raises a FullError if it could not.
         :return:
         """
         if self.can_add_game():
-            game_instance = game.GameInstance()
+            game_instance = game.GameInstance(g_id)
             self.games.append(game_instance)
             return game_instance
         raise OutOfSpaceError
