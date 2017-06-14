@@ -85,7 +85,7 @@ class Matchmaker:
             try:
                 game_id, room_cluster = self.manager.thread_man.create_game()
                 inst = self.manager.thread_man.get_game(game_id)
-                log.debug('created game %s', game)
+                log.debug('created game with id %s', game_id)
                 filled_players = self.gamemode.fill_game(self.players, inst)
                 for lob, player in filled_players:
                     token = util.random_string(constants.ID_LENGTH)

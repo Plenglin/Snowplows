@@ -84,11 +84,13 @@ class LobbyPlayerConnection(websocket.WebSocketHandler):
 class GamePlayerConnection(websocket.WebSocketHandler):
 
     # noinspection PyMethodOverriding
-    def initialize(self, manager):
+    def initialize(self, manager, transmission_pd):
         self.state = GameState.OPENING
         self.manager = manager
+        self.period = transmission_pd
         self.player_id = None
         self.game_inst = None
+        self.outputter = None
 
     def on_message(self, msg):
 
@@ -102,17 +104,21 @@ class GamePlayerConnection(websocket.WebSocketHandler):
                 log.warning('client %s did not send a token', self.request.remote_ip)
                 return
             try:
-                self.game_inst, self.player_id = self.manager.tokens[token]
+                g_id, self.player_id = self.manager.tokens[token]
                 log.debug('client %s sent valid token %s', self.request.remote_ip, token)
             except KeyError:
                 self.send_error(400)
                 log.warning('client %s sent invalid token %s', self.request.remote_ip, token)
                 return
-            self.state = GameState.GAME
+            log.debug('client %s is in game with id %s', self.player_id, g_id)
+            self.game_inst = self.manager.thread_man.get_game(g_id)
             self.write_message(json.dumps({
                 'valid': True,
                 'id': self.player_id
             }))
+            self.outputter = tornado.ioloop.PeriodicCallback(self.game_loop, self.period)
+            self.outputter.start()
+            self.state = GameState.GAME
 
         elif self.state == GameState.GAME:
             pass
@@ -122,5 +128,10 @@ class GamePlayerConnection(websocket.WebSocketHandler):
 
         else:
             raise ValueError('Something went wrong with the state machine in GamePlayerConnection')
+
+    def game_loop(self):
+        encoded_data = self.game_inst.get_encoded()
+        self.write_message(encoded_data)
+
 
 log.setLevel(logging.DEBUG if constants.DEBUG_MODE else logging.WARN)

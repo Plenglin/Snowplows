@@ -245,7 +245,7 @@ class GameInstance:
 
 if __name__ == '__main__':
     from pprint import pprint
-    game = GameInstance()
+    game = GameInstance('testid')
     t1 = game.create_team()
     t1.create_player()
     t1.create_player()

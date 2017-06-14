@@ -41,6 +41,7 @@ $(function() {
 			}
 			break;
 		case GAME:
+
 			break;
 		case CLOSING:
 			break;

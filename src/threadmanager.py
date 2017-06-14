@@ -95,7 +95,7 @@ class ThreadsManager:
         return game_id, thr
 
     def get_game(self, id: str):
-        return self.game_registry.get(id)
+        return self.game_registry[id]
 
     def remove_game(self, id: str):
         game = self.game_registry[id]

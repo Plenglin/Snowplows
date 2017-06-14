@@ -41,9 +41,6 @@ class GameManager:
         for mm in self.mmers:
             mm.init()
 
-    def get_game_with_token(self, token):
-        pass
-
 
 def get_app():
 
@@ -58,8 +55,7 @@ def get_app():
         (r'/game', views.GameView, {'manager': manager}),
 
         (r'/socket/matchmaking', sockets.LobbyPlayerConnection, {'manager': manager}),
-        (r'/socket/game', sockets.GamePlayerConnection, {'manager': manager}),
-        (r'/socket/game/dev', sockets.GamePlayerConnection, {'manager': manager}),
+        (r'/socket/game', sockets.GamePlayerConnection, {'manager': manager, 'transmission_pd': constants.GAME_TRANSMISSION_PERIOD}),
 
     ], template_path='../views')
 

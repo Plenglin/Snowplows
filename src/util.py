@@ -4,7 +4,7 @@ Misc. functions
 import random
 import string
 
-LETTERS = string.ascii_letters + string.digits
+LETTERS = string.ascii_letters + string.digits + '-_'
 
 
 def offset_box(cx, cy, length, width):
