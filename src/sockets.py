@@ -112,11 +112,15 @@ class GamePlayerConnection(websocket.WebSocketHandler):
                 return
             log.debug('client %s is in game with id %s', self.player_id, g_id)
             self.game_inst = self.manager.thread_man.get_game(g_id)
-            self.game_inst.player_with_id(self.player_id).ready = True
+            self.player = self.game_inst.player_with_id(self.player_id)
+
             self.write_message(json.dumps({
                 'valid': True,
-                'id': self.player_id
+                'id': self.player_id,
+                'playerTeamId': self.player.team.id,
+                'teamIds': [t.id for t in self.game_inst.teams]
             }))
+            self.player.ready = True
             self.outputter = tornado.ioloop.PeriodicCallback(self.game_loop, self.period)
             self.outputter.start()
             self.state = GameState.GAME

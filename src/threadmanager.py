@@ -56,7 +56,7 @@ class ThreadsManager:
         """
         return len(self.threads) < self.thread_limit
 
-    def create_thread(self):
+    def _create_thread(self):
         """
         Create a thread. This ignores can_create_thread.
         :return:
@@ -76,7 +76,7 @@ class ThreadsManager:
         log.debug('%s finding next thread')
         thr = self.next_available_thread()
         if thr is None and self.can_create_thread():
-            return self.create_thread()
+            return self._create_thread()
         return thr
 
     def create_game(self):

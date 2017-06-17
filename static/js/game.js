@@ -1,8 +1,27 @@
-var drawingCanvas, bufferCanvas, ctx, bctx, socket, socketstate, playerId;
+var drawingCanvas, bufferCanvas, ctx, bctx;
 
 const OPENING = 0;
 const GAME = 1;
 const CLOSING = 2;
+
+const ENEMY_COLORS = ['blueviolet', 'crimson', 'darkcyan', 'darkgreen', 'darkorange', 'darkorchid', 'firebrick', 'saddlebrown', 'salmon', 'thistle', 'teal'];
+const FRIENDLY_COLOR = 'cornflowerblue';
+const DEAD_COLOR = 'black';
+
+function ServerData(input) {
+	this.players = [];
+	for (var i=0; i < input.teams.length; i++) {
+		this.players = this.players.concat(t.players);
+	}
+}
+
+var game = {
+	socket: null,
+	socketstate: null,
+	playerId: '',
+	playerTeamId: '',
+	teams: {}
+};
 
 $(function() {
 	/*
@@ -20,33 +39,57 @@ $(function() {
 	}
 	img.src = '/static/img/truckBase.svg';
 	*/
-	socket = new WebSocket(websocketUrl($('head').data('socket-url')));
-	socket.onopen = function() {
-    	socketstate = OPENING;
-		socket.send(JSON.stringify({
-			token: $('head').data('token')
-		}));
-	}
-	socket.onmessage = function(event) {
+	game.socket = new WebSocket(websocketUrl($('head').data('socket-url')));
+	game.socket.onopen = function() {
+    	game.socketstate = OPENING;
+    	var token = $('head').data('token');
+    	console.log('sending token', token);
+		game.socket.send(JSON.stringify({
+			token: token
+		}));  // send our token
+	};
+	game.socket.onmessage = function(event) {
 
 		var data = JSON.parse(event.data);
-		console.log('received', data);
-		switch (socketstate) {
+		console.log('RECEIVED:', data);
+
+		switch (game.socketstate) {
 		case OPENING:
 			if (data.valid) {
-			    playerId = data.id;
-			    console.log('token acknowledged');
-			    console.log(sprintf('player id is %s', playerId));
-			    socketstate = GAME;
+			    console.log('token acknowledged, decoding data');
+
+			    game.playerId = data.id;
+			    game.playerTeamId = data.playerTeamId;
+
+			    console.log('player id is', game.playerId);
+			    console.log('player is on team', game.playerTeamId);
+
+			    console.log('assigning colors to the teams...');
+			    for (var i = data.teamIds.length - 1; i >= 0; i--) {
+			    	var id = data.teamIds[i];
+			    	var color = id == game.playerTeamId ? FRIENDLY_COLOR : choice(ENEMY_COLORS);
+			    	game.teams[id] = color;
+			    	console.log('assigned', color, 'to', id);
+			    }
+
+			    game.socketstate = GAME;
+			} else {
+				console.log('token not acknowledged, closing socket');
+				socket.close();
 			}
 			break;
 		case GAME:
 
 			break;
+
 		case CLOSING:
 			break;
+
+		default:
+			console.log('state machine derped pls fix');
+			break;
 		}
-	}
+	};
 
 });
 
