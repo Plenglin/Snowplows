@@ -16,3 +16,6 @@ PORT = int(os.environ.get('PORT', 8080))
 
 # Client transmission
 GAME_TRANSMISSION_PERIOD = 50  # The rate to send messages at
+
+# Game
+GAME_UPDATE_PERIOD = 0.025

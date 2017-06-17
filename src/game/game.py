@@ -21,11 +21,12 @@ class Player:
     A single player, dead or alive
     """
 
-    def __init__(self, player_id: str, body: pymunk.Body, team, living=True):
+    def __init__(self, player_id: str, body: pymunk.Body, team, living=True, ready=False):
         self.id = player_id
         self.body = body
         self.team: Team = team
         self.living = living
+        self.ready = ready
 
         self.began_boost = 0
         self.braking = False
@@ -136,6 +137,8 @@ class GameInstance:
         self.frames = 0
         self.id = g_id
 
+        self.initialized = False
+
         # Listeners
         self.on_death = lambda p: None
 
@@ -145,6 +148,14 @@ class GameInstance:
             print(t)
             for p in t:
                 yield p
+
+    def player_with_id(self, p_id):
+        for p in self.players:
+            if p.id == p_id:
+                return p
+
+    def players_ready(self):
+        return all(p.ready for p in self.players)
 
     def init(self):
 
@@ -193,7 +204,14 @@ class GameInstance:
             s.collision_type = ARENA_BORDER_TYPE
         self.space.add(body, *shapes)
 
+        self.initialized = True
+
     def update(self, dt):
+
+        if not self.initialized:
+            log.debug('%s not initialized', self)
+            return None
+
         for p in self.players:  # Push the players along in their proper directions at their proper speeds.
             force = (BOOST_FORCE if p.is_boosting() else NORMAL_FORCE) * Vec2d.unit()
             force.angle = p.rotation
@@ -224,6 +242,8 @@ class GameInstance:
 
         self.space.step(dt)  # Simulate world
         self.frames += 1
+
+        return self.frames
 
     def get_encoded(self) -> dict:
         return {

@@ -32,7 +32,7 @@ class GameManager:
                  threads_update_period=constants.ID_LENGTH, matchmaking_update_period=constants.MM_UPDATE_PERIOD):
         self.gamemodes = gamemodes
 
-        self.thread_man = threadmanager.ThreadsManager(10, 5, threads_update_period)
+        self.thread_man = threadmanager.ThreadsManager(5, 10, threads_update_period)
         self.mmers = [matchmaking.Matchmaker(gm, matchmaking_update_period, self) for gm in gamemodes]
 
         self.tokens = {}

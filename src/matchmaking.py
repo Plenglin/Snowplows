@@ -63,7 +63,7 @@ class Matchmaker:
 
         self.next_id = 0
         self.players = queue.Queue()
-        self._periodic_callback = tornado.ioloop.PeriodicCallback(self.fill_game, self.update_period)
+        self._periodic_callback = tornado.ioloop.PeriodicCallback(self.attempt_fill_game, self.update_period)
 
     def __repr__(self):
         return 'Matchmaker({})'.format(self.gamemode)
@@ -78,7 +78,7 @@ class Matchmaker:
     def add_player(self, player):
         self.players.put(player)
 
-    def fill_game(self):
+    def attempt_fill_game(self):
         player_count = self.players.qsize()
         if player_count >= self.gamemode.total_players:
             log.info('%s has enough players (%s/%s) for a new game', self, player_count, self.gamemode.total_players)
@@ -91,6 +91,25 @@ class Matchmaker:
                     token = util.random_string(constants.ID_LENGTH)
                     self.manager.tokens[token] = game_id, player.id
                     lob.socket.on_enough_players(token)
+                GameInitializationManager(inst).begin()
 
             except threadmanager.OutOfSpaceError:
                 log.info('%s could not create game because there are not enough slots.', self)
+
+
+class GameInitializationManager:
+
+    def __init__(self, inst):
+        self.inst = inst
+        self.task = tornado.ioloop.PeriodicCallback(self.periodic, constants.MM_UPDATE_PERIOD)
+
+    def begin(self):
+        self.task.start()
+
+    def periodic(self):
+        if self.inst.players_ready():
+            log.debug('initializing %s', self.inst)
+            self.inst.init()  # Initialize the game if everyone is ready
+            self.task.stop()
+        else:
+            log.debug('not everyone is ready yet')

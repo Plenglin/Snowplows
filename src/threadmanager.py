@@ -62,7 +62,8 @@ class ThreadsManager:
         :return:
         """
         log.debug('%s creating new thread', self)
-        thread = RoomCluster(self.games_per_thread, self.update_period)
+        thread = RoomCluster(self.games_per_thread, constants.GAME_UPDATE_PERIOD)
+        thread.start()
         self.threads.append(thread)
         return thread
 
@@ -116,7 +117,7 @@ class RoomCluster(threading.Thread):
     """
 
     def __init__(self, games_limit, update_period):
-        super(RoomCluster, self).__init__()
+        super().__init__()
         self.games = []
         self.games_limit = games_limit
         self.event_loop = asyncio.new_event_loop()
@@ -127,14 +128,18 @@ class RoomCluster(threading.Thread):
             yield g
 
     def run(self):
+        log.debug('%s starting', self)
         while True:
             loop_start = time.time()
             for instance in self.games:
+                log.debug('running %s', instance)
                 instance.update(self.update_period)
+            delay_time = self.update_period + loop_start - time.time()
             try:
-                time.sleep(self.update_period + loop_start - time.time())  # The amount of time remaining in this loop
+                time.sleep(delay_time)  # The amount of time remaining in this loop
             except ValueError:
-                time.sleep(self.update_period)
+                log.warning('%s is lagging behind schedule!', self)
+                pass
 
     def can_add_game(self):
         """
