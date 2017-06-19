@@ -1,19 +1,60 @@
-var drawingCanvas, bufferCanvas, ctx, bctx;
+var drawingCanvas, bufferCanvas, ctx, bctx, playerImg;
 
 const OPENING = 0;
 const GAME = 1;
 const CLOSING = 2;
 
-const ENEMY_COLORS = ['blueviolet', 'crimson', 'darkcyan', 'darkgreen', 'darkorange', 'darkorchid', 'firebrick', 'saddlebrown', 'salmon', 'thistle', 'teal'];
-const FRIENDLY_COLOR = 'cornflowerblue';
+const ENEMY_COLORS = ['blueviolet', 'crimson', 'darkcyan', 'darkorange', 'darkorchid', 'firebrick', 'saddlebrown', 'salmon', 'thistle'];
+const FRIENDLY_COLOR = 'darkgreen';
+const SELF_COLOR = 'cornflowerblue';
 const DEAD_COLOR = 'black';
 
-function ServerData(input) {
-	this.players = [];
-	for (var i=0; i < input.teams.length; i++) {
-		this.players = this.players.concat(t.players);
-	}
+function Player(team, id, isUser) {
+	this.team = team;
+	this.id = id;
+	this.pos = {x: 0, y: 0};
+	this.direction = 0;
+	this.isUser = isUser;
 }
+
+Player.prototype.setTransform = function(x, y, direction) {
+	this.pos.x = x;
+	this.pos.y = y;
+	this.direction = direction;
+	return this;
+};
+
+Player.prototype.getColor = function() {
+	return this.isUser ? SELF_COLOR : this.team.color;
+};
+
+Player.prototype.draw = function(ctx) {
+	ctx.save();
+	// Rotate around center
+	ctx.translate(this.pos.x, this.pos.y);
+	ctx.rotate(this.direction);
+	ctx.translate(-this.pos.x, this.pos.y);
+
+	drawImgWithTint(ctx, playerImg, this.getColor(), 0.5, this.x, this.y, playerImg.width, playerImg.height);
+	ctx.restore();
+
+};
+
+function Team(color) {
+	this.color = color;
+	this.players = {};
+}
+
+Team.prototype.createPlayer = function(id) {
+	var p = new Player(this, id);
+	this.players[id] = p;
+	return p;
+};
+
+Team.prototype.getPlayer = function(id) {
+	return this.players[id];
+};
+
 
 var game = {
 	socket: null,
@@ -24,7 +65,6 @@ var game = {
 };
 
 $(function() {
-	/*
 	drawingCanvas = $('#gameCanvas')[0];
 	ctx = drawingCanvas.getContext('2d');
 
@@ -33,21 +73,37 @@ $(function() {
 
 	bufferCanvas = $('#bufferCanvas')[0];
 	bctx = bufferCanvas.getContext('2d');
-	img = new Image();
-	img.onload = function() {
-		drawImgWithTint(this, '#FF0000', 1, 0, 0);
-	}
-	img.src = '/static/img/truckBase.svg';
-	*/
+
+	var token = $('head').data('token');
+
+	console.log('loading playerImg');
+	playerImg = new Image();
+	playerImg.src = '/static/img/truck.png';
+
+	console.log('opening socket');
 	game.socket = new WebSocket(websocketUrl($('head').data('socket-url')));
-	game.socket.onopen = function() {
-    	game.socketstate = OPENING;
-    	var token = $('head').data('token');
+	
+	async.parallel([
+		function (cb) {  // Wait for image to load
+			playerImg.onload = function() {
+				console.log('playerImg finished loading');
+				cb(null);
+			};
+		},
+		function (cb) {  // Wait for socket to connect
+			game.socket.onopen = function() {
+				console.log('socket finished opening');
+				cb(null);
+			};
+		}
+	], function(err, results) {  // Finally, send our token through the socket to begin the game
     	console.log('sending token', token);
+    	game.socketstate = OPENING;
 		game.socket.send(JSON.stringify({
 			token: token
-		}));  // send our token
-	};
+		})); 
+	});
+
 	game.socket.onmessage = function(event) {
 
 		var data = JSON.parse(event.data);
@@ -93,11 +149,15 @@ $(function() {
 
 });
 
-function drawPlayer(argument) {
-	// body...
+function drawGame() {
+	game.teams.foreach(function(team) {
+		team.foreach(function(player) {
+			player.draw();
+		});
+	});
 }
 
-function drawImgWithTint(img, tint, alpha, x, y, w, h) {
+function drawImgWithTint(ctx, img, tint, alpha, x, y, w, h) {
 	if (w == undefined) {
 		w = img.width;
 	}
@@ -110,7 +170,7 @@ function drawImgWithTint(img, tint, alpha, x, y, w, h) {
     bufferCanvas.height = h;
 
     // fill offscreen buffer with the tint color
-    bctx.fillStyle = '#FFCC00'
+    bctx.fillStyle = '#FFCC00';
     bctx.fillRect(0, 0, w, h);
 
     // destination atop makes a result with an alpha channel identical to img, but with all pixels retaining their original color *as far as I can tell*
