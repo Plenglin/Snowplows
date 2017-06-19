@@ -1,4 +1,6 @@
-var drawingCanvas, bufferCanvas, ctx, bctx, playerImg;
+var game, drawingCanvas, bufferCanvas, ctx, bctx, playerImg;
+
+const DRAW_PERIOD = 50;
 
 const OPENING = 0;
 const GAME = 1;
@@ -40,7 +42,8 @@ Player.prototype.draw = function(ctx) {
 
 };
 
-function Team(color) {
+function Team(id, color) {
+	this.id = id;
 	this.color = color;
 	this.players = {};
 }
@@ -55,16 +58,68 @@ Team.prototype.getPlayer = function(id) {
 	return this.players[id];
 };
 
+function Game() {
+	this.socket = null;
+	this.socketstate = null;
+	this.playerId = '';
+	this.playerTeamId = '';
+	this.teams = {};
+}
 
-var game = {
-	socket: null,
-	socketstate: null,
-	playerId: '',
-	playerTeamId: '',
-	teams: {}
+Game.prototype.initialize = function(data) {
+    this.playerId = data.player.id;
+    this.playerTeamId = data.player.team;
+
+    console.log('player id is', this.playerId);
+    console.log('player is on team', this.playerTeamId);
+
+    console.log('assigning colors to the teams...');
+    for (var i = data.teams.length - 1; i >= 0; i--) {
+    	var teamData = data.teams[i];
+    	var id = teamData.id;
+    	
+    	var color = id == this.playerTeamId ? FRIENDLY_COLOR : choice(ENEMY_COLORS);
+    	var team = new Team(id, color);
+    	this.teams[id] = team;
+    	console.log('assigned', color, 'to', id);
+    	
+    	for (var j = teamData.players.length - 1; j >= 0; j--) {
+    		var playerId = teamData.players[j];
+    		team.createPlayer(playerId);
+    	}
+    }
+
+    this.drawingTask = setInterval(this.draw, DRAW_PERIOD);
+};
+
+Game.prototype.forEachPlayer = function(cb) {
+	for (var teamId in game.teams) {
+		for (var playerId in game.teams[playerId].players) {
+			cb(team.getPlayer(playerId));
+		}
+	}
+};
+
+Game.prototype.update = function(data) {
+	var self = this;
+	data.teams.forEach(function (tData) {
+		var team = self.teams[tData.id];
+		tData.players.forEach(function (pData) {
+			var player = team.getPlayer(pData.id);
+			player.pos.x = pData.x;
+			player.pos.y = pData.y;
+			player.direction = pData.direction;
+		});
+	});
+};
+
+Game.prototype.draw = function() {
+	
 };
 
 $(function() {
+	game = new Game();
+
 	drawingCanvas = $('#gameCanvas')[0];
 	ctx = drawingCanvas.getContext('2d');
 
@@ -113,29 +168,16 @@ $(function() {
 		case OPENING:
 			if (data.valid) {
 			    console.log('token acknowledged, decoding data');
-
-			    game.playerId = data.id;
-			    game.playerTeamId = data.playerTeamId;
-
-			    console.log('player id is', game.playerId);
-			    console.log('player is on team', game.playerTeamId);
-
-			    console.log('assigning colors to the teams...');
-			    for (var i = data.teamIds.length - 1; i >= 0; i--) {
-			    	var id = data.teamIds[i];
-			    	var color = id == game.playerTeamId ? FRIENDLY_COLOR : choice(ENEMY_COLORS);
-			    	game.teams[id] = color;
-			    	console.log('assigned', color, 'to', id);
-			    }
-
+			    game.initialize(data);
+			    console.log('game object:', game);
 			    game.socketstate = GAME;
 			} else {
 				console.log('token not acknowledged, closing socket');
-				socket.close();
+				game.socket.close();
 			}
 			break;
 		case GAME:
-
+			game.update(data);
 			break;
 
 		case CLOSING:
@@ -148,14 +190,6 @@ $(function() {
 	};
 
 });
-
-function drawGame() {
-	game.teams.foreach(function(team) {
-		team.foreach(function(player) {
-			player.draw();
-		});
-	});
-}
 
 function drawImgWithTint(ctx, img, tint, alpha, x, y, w, h) {
 	if (w == undefined) {

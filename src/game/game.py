@@ -145,7 +145,6 @@ class GameInstance:
     @property
     def players(self) -> Iterable[Player]:
         for t in self.teams:
-            print(t)
             for p in t:
                 yield p
 
@@ -188,21 +187,21 @@ class GameInstance:
         ad_handler.pre_solve = ad_pre_solve
 
         # Create borders
-        body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        shapes = [
-            pymunk.Poly(body, util.offset_box(ARENA_WIDTH / 2, -ARENA_THICKNESS / 2, ARENA_WIDTH + 2 * ARENA_THICKNESS,
+        border_body = pymunk.Body(body_type=pymunk.Body.STATIC)
+        border_shapes = [
+            pymunk.Poly(border_body, util.offset_box(ARENA_WIDTH / 2, -ARENA_THICKNESS / 2, ARENA_WIDTH + 2 * ARENA_THICKNESS,
                                               ARENA_THICKNESS)),
-            pymunk.Poly(body, util.offset_box(ARENA_WIDTH / 2, ARENA_HEIGHT + 3 * ARENA_THICKNESS / 4,
+            pymunk.Poly(border_body, util.offset_box(ARENA_WIDTH / 2, ARENA_HEIGHT + 3 * ARENA_THICKNESS / 4,
                                               ARENA_WIDTH + 2 * ARENA_THICKNESS, ARENA_THICKNESS)),
-            pymunk.Poly(body, util.offset_box(-ARENA_THICKNESS / 2, ARENA_HEIGHT / 2, ARENA_THICKNESS,
+            pymunk.Poly(border_body, util.offset_box(-ARENA_THICKNESS / 2, ARENA_HEIGHT / 2, ARENA_THICKNESS,
                                               ARENA_HEIGHT + 2 * ARENA_THICKNESS)),
-            pymunk.Poly(body, util.offset_box(ARENA_WIDTH + 3 * ARENA_THICKNESS / 4, ARENA_HEIGHT / 2, ARENA_THICKNESS,
+            pymunk.Poly(border_body, util.offset_box(ARENA_WIDTH + 3 * ARENA_THICKNESS / 4, ARENA_HEIGHT / 2, ARENA_THICKNESS,
                                               ARENA_HEIGHT + 2 * ARENA_THICKNESS))
         ]
-        for s in shapes:
+        for s in border_shapes:
             s.elasticity = 0.8
             s.collision_type = ARENA_BORDER_TYPE
-        self.space.add(body, *shapes)
+        self.space.add(border_body, *border_shapes)
 
         self.initialized = True
 

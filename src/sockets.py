@@ -116,9 +116,16 @@ class GamePlayerConnection(websocket.WebSocketHandler):
 
             self.write_message(json.dumps({
                 'valid': True,
-                'id': self.player_id,
-                'playerTeamId': self.player.team.id,
-                'teamIds': [t.id for t in self.game_inst.teams]
+                'player': {
+                    'id': self.player_id,
+                    'team': self.player.team.id
+                },
+                'teams': [
+                    {
+                        'id': t.id,
+                        'players': [p.id for p in t]
+                    } for t in self.game_inst.teams
+                ]
             }))
             self.player.ready = True
             self.outputter = tornado.ioloop.PeriodicCallback(self.game_loop, self.period)
@@ -133,6 +140,9 @@ class GamePlayerConnection(websocket.WebSocketHandler):
 
         else:
             raise ValueError('Something went wrong with the state machine in GamePlayerConnection')
+
+    def on_close(self):
+        self.outputter.stop()
 
     def game_loop(self):
         encoded_data = self.game_inst.get_encoded()
