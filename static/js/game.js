@@ -89,12 +89,12 @@ Game.prototype.initialize = function(data) {
     	}
     }
 
-    this.drawingTask = setInterval(this.draw, DRAW_PERIOD);
 };
 
 Game.prototype.forEachPlayer = function(cb) {
-	for (var teamId in game.teams) {
-		for (var playerId in game.teams[playerId].players) {
+	for (var teamId in this.teams) {
+		var team = this.teams[teamId];
+		for (var playerId in team.players) {
 			cb(team.getPlayer(playerId));
 		}
 	}
@@ -113,8 +113,10 @@ Game.prototype.update = function(data) {
 	});
 };
 
-Game.prototype.draw = function() {
-	
+Game.prototype.draw = function(ctx) {
+	this.forEachPlayer(function (player) {
+		player.draw(ctx);
+	});
 };
 
 $(function() {
@@ -170,7 +172,11 @@ $(function() {
 			    console.log('token acknowledged, decoding data');
 			    game.initialize(data);
 			    console.log('game object:', game);
-			    game.socketstate = GAME;
+			    console.log('starting drawing task');
+		        this.drawingTask = setInterval(function() {
+		        	game.draw(ctx);
+		        }, DRAW_PERIOD);
+				game.socketstate = GAME;
 			} else {
 				console.log('token not acknowledged, closing socket');
 				game.socket.close();
