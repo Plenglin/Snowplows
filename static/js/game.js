@@ -1,6 +1,8 @@
-var game, drawingCanvas, bufferCanvas, ctx, bctx, playerImg;
+var game, drawingCanvas, bufferCanvas, ctx, bctx, playerImg, drawingTask, inputTask;
 
 const DRAW_PERIOD = 50;
+const INPUT_PERIOD = 100;
+const ARENA_THICKNESS = 10;
 
 const OPENING = 0;
 const GAME = 1;
@@ -10,6 +12,37 @@ const ENEMY_COLORS = ['blueviolet', 'crimson', 'darkcyan', 'darkorange', 'darkor
 const FRIENDLY_COLOR = 'darkgreen';
 const SELF_COLOR = 'cornflowerblue';
 const DEAD_COLOR = 'black';
+
+function Camera() {
+	this.scale = 0;
+	this.rotate = 0;
+	this.translate = {x: 0, y: 0};
+}
+
+Camera.prototype.applyToCanvas = function(ctx) {
+	ctx.scale(this.scale);
+	ctx.rotate(this.rotate);
+	ctx.translate(this.translate.x, this.translate.y);
+};
+
+function Drawing(arenaDims, canvas, bufferCanvas) {
+	this.arenaDims = arenaDims;
+	this.canvas = canvas;
+	this.buffer = bufferCanvas;
+
+	this.cam = new Camera();
+	this.ctx = canvas.getContext('2d');
+	this.bctx = this.buffer.getContext('2d');
+}
+
+Drawing.prototype.updateCam = function() {
+	// Get the factor to multiply arena dimensions by
+	if (arenaDims.width < arenaDims.height) {
+		this.cam.scale = canvas.getWidth() / arenaDims.width;
+	} else {
+		this.cam.scale = canvas.getHeight() / arenaDims.getHeight;
+	}
+};
 
 function Player(team, id, isUser) {
 	this.team = team;
@@ -61,6 +94,7 @@ Team.prototype.getPlayer = function(id) {
 function Game() {
 	this.socket = null;
 	this.socketstate = null;
+	this.arena = {width: 0, height: 0};
 	this.playerId = '';
 	this.playerTeamId = '';
 	this.teams = {};
@@ -72,6 +106,9 @@ Game.prototype.initialize = function(data) {
 
     console.log('player id is', this.playerId);
     console.log('player is on team', this.playerTeamId);
+
+    this.arena = data.arena;
+    console.log('arena dimensions', this.arena);
 
     console.log('assigning colors to the teams...');
     for (var i = data.teams.length - 1; i >= 0; i--) {
@@ -114,12 +151,28 @@ Game.prototype.update = function(data) {
 };
 
 Game.prototype.draw = function(ctx) {
+
+	// Clear the screen
+	ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+	// Render background
+	ctx.strokeStyle = "black";
+	ctx.lineWidth = 100;
+	ctx.strokeRect(
+		ARENA_THICKNESS/2, 
+		ARENA_THICKNESS/2, 
+		this.arena.width + ARENA_THICKNESS*2, 
+		this.arena.height + ARENA_THICKNESS*2);
+
+	// Render players
 	this.forEachPlayer(function (player) {
 		player.draw(ctx);
 	});
+
 };
 
 $(function() {
+
 	game = new Game();
 
 	drawingCanvas = $('#gameCanvas')[0];
@@ -173,7 +226,7 @@ $(function() {
 			    game.initialize(data);
 			    console.log('game object:', game);
 			    console.log('starting drawing task');
-		        this.drawingTask = setInterval(function() {
+		        drawingTask = setInterval(function() {
 		        	game.draw(ctx);
 		        }, DRAW_PERIOD);
 				game.socketstate = GAME;

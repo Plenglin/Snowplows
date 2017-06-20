@@ -1,6 +1,7 @@
 import json
 import logging
 import enum
+import game
 
 import tornado
 import tornado.ioloop
@@ -116,6 +117,10 @@ class GamePlayerConnection(websocket.WebSocketHandler):
 
             self.write_message(json.dumps({
                 'valid': True,
+                'arena': {
+                    'width': game.ARENA_WIDTH,
+                    'height': game.ARENA_HEIGHT
+                },
                 'player': {
                     'id': self.player_id,
                     'team': self.player.team.id
