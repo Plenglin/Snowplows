@@ -117,6 +117,7 @@ class GamePlayerConnection(websocket.WebSocketHandler):
 
             self.write_message(json.dumps({
                 'valid': True,
+                'playerSize': 30,
                 'arena': {
                     'width': game.ARENA_WIDTH,
                     'height': game.ARENA_HEIGHT
