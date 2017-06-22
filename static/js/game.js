@@ -1,4 +1,4 @@
-var game, drawingCanvas, bufferCanvas, ctx, bctx, playerImg, drawingTask, inputTask;
+var game, drawing, drawingCanvas, bufferCanvas, playerImg, drawingTask, inputTask;
 
 const DRAW_PERIOD = 50;
 const INPUT_PERIOD = 100;
@@ -20,7 +20,7 @@ function Camera() {
 }
 
 Camera.prototype.applyToCanvas = function(ctx) {
-	ctx.scale(this.scale);
+	ctx.scale(this.scale, this.scale);
 	ctx.rotate(this.rotate);
 	ctx.translate(this.translate.x, this.translate.y);
 };
@@ -37,11 +37,85 @@ function Drawing(arenaDims, canvas, bufferCanvas) {
 
 Drawing.prototype.updateCam = function() {
 	// Get the factor to multiply arena dimensions by
-	if (arenaDims.width < arenaDims.height) {
-		this.cam.scale = canvas.getWidth() / arenaDims.width;
+	if (this.arenaDims.width < this.arenaDims.height) {
+		this.cam.scale = this.arenaDims.width / this.canvas.width;
 	} else {
-		this.cam.scale = canvas.getHeight() / arenaDims.getHeight;
+		this.cam.scale = this.arenaDims.height / this.canvas.height;
 	}
+};
+
+Drawing.prototype.drawImgWithTint = function(img, tint, alpha, x, y, w, h) {
+	if (w == undefined) {
+		w = img.width;
+	}
+	if (h == undefined) {
+		h = img.height;
+	}
+
+	// rest of function shamelessly copied from stackoverflow
+	this.buffer.width = w;
+    this.buffer.height = h;
+
+    // fill offscreen buffer with the tint color
+    this.bctx.fillStyle = tint;
+    this.bctx.fillRect(0, 0, w, h);
+
+    // destination atop makes a result with an alpha channel identical to img, but with all pixels retaining their original color *as far as I can tell*
+    this.bctx.globalCompositeOperation = "destination-atop";
+    this.bctx.drawImage(img, 0, 0);
+
+    // to tint the image, draw it first
+    this.ctx.drawImage(img, 0, 0);
+
+    //then set the global alpha to the amound that you want to tint it, and draw the buffer directly on top of it.
+    this.ctx.globalAlpha = alpha;
+    this.ctx.drawImage(this.buffer, 0, 0);
+};
+
+Drawing.prototype.drawGame = function(gameObj) {
+	
+	var self = this;
+
+	// Apply the camera to the canvas
+	this.ctx.save();
+	this.updateCam();
+	//this.cam.scale = 0.25;
+	this.cam.applyToCanvas(this.ctx);
+
+	// Clear the screen
+	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+	// Render background
+	this.ctx.strokeStyle = "black";
+	this.ctx.lineWidth = 100;
+	this.ctx.strokeRect(
+		ARENA_THICKNESS/2, 
+		ARENA_THICKNESS/2, 
+		this.arenaDims.width + ARENA_THICKNESS*2, 
+		this.arenaDims.height + ARENA_THICKNESS*2);
+
+	// Render players
+	gameObj.forEachPlayer(function (player) {
+		self.drawPlayer(player);
+	});
+
+	this.ctx.restore();
+
+};
+
+Drawing.prototype.drawPlayer = function(player) {
+	this.ctx.save();
+	// Rotate around center
+	this.ctx.translate(player.pos.x, player.pos.y);
+	this.ctx.rotate(player.direction);
+	this.ctx.translate(-player.pos.x, player.pos.y);
+
+	this.drawImgWithTint(
+		playerImg, player.getColor(), 0.5, 
+		player.x-playerImg.width/2, player.y-playerImg.height/2, 
+		playerImg.width, playerImg.height);
+	this.ctx.restore();
+
 };
 
 function Player(team, id, isUser) {
@@ -61,18 +135,6 @@ Player.prototype.setTransform = function(x, y, direction) {
 
 Player.prototype.getColor = function() {
 	return this.isUser ? SELF_COLOR : this.team.color;
-};
-
-Player.prototype.draw = function(ctx) {
-	ctx.save();
-	// Rotate around center
-	ctx.translate(this.pos.x, this.pos.y);
-	ctx.rotate(this.direction);
-	ctx.translate(-this.pos.x, this.pos.y);
-
-	drawImgWithTint(ctx, playerImg, this.getColor(), 0.5, this.x, this.y, playerImg.width, playerImg.height);
-	ctx.restore();
-
 };
 
 function Team(id, color) {
@@ -150,39 +212,14 @@ Game.prototype.update = function(data) {
 	});
 };
 
-Game.prototype.draw = function(ctx) {
-
-	// Clear the screen
-	ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-
-	// Render background
-	ctx.strokeStyle = "black";
-	ctx.lineWidth = 100;
-	ctx.strokeRect(
-		ARENA_THICKNESS/2, 
-		ARENA_THICKNESS/2, 
-		this.arena.width + ARENA_THICKNESS*2, 
-		this.arena.height + ARENA_THICKNESS*2);
-
-	// Render players
-	this.forEachPlayer(function (player) {
-		player.draw(ctx);
-	});
-
-};
-
 $(function() {
 
 	game = new Game();
 
 	drawingCanvas = $('#gameCanvas')[0];
-	ctx = drawingCanvas.getContext('2d');
-
+	bufferCanvas = $('#bufferCanvas')[0];
 	drawingCanvas.width = $(window).width();
 	drawingCanvas.height = $(window).height();
-
-	bufferCanvas = $('#bufferCanvas')[0];
-	bctx = bufferCanvas.getContext('2d');
 
 	var token = $('head').data('token');
 
@@ -221,19 +258,26 @@ $(function() {
 
 		switch (game.socketstate) {
 		case OPENING:
-			if (data.valid) {
+			
+			if (data.valid) { 
 			    console.log('token acknowledged, decoding data');
 			    game.initialize(data);
+			    
 			    console.log('game object:', game);
+			    drawing = new Drawing(game.arena, drawingCanvas, bufferCanvas);
+			    
 			    console.log('starting drawing task');
 		        drawingTask = setInterval(function() {
-		        	game.draw(ctx);
+		        	drawing.drawGame(game);
+		        	console.log(drawing, game);
 		        }, DRAW_PERIOD);
 				game.socketstate = GAME;
+				
 			} else {
 				console.log('token not acknowledged, closing socket');
 				game.socket.close();
 			}
+
 			break;
 		case GAME:
 			game.update(data);
@@ -249,31 +293,3 @@ $(function() {
 	};
 
 });
-
-function drawImgWithTint(ctx, img, tint, alpha, x, y, w, h) {
-	if (w == undefined) {
-		w = img.width;
-	}
-	if (h == undefined) {
-		h = img.height;
-	}
-
-	// rest of function shamelessly copied from stackoverflow
-	bufferCanvas.width = w;
-    bufferCanvas.height = h;
-
-    // fill offscreen buffer with the tint color
-    bctx.fillStyle = '#FFCC00';
-    bctx.fillRect(0, 0, w, h);
-
-    // destination atop makes a result with an alpha channel identical to img, but with all pixels retaining their original color *as far as I can tell*
-    bctx.globalCompositeOperation = "destination-atop";
-    bctx.drawImage(img, 0, 0);
-
-    // to tint the image, draw it first
-    ctx.drawImage(img, 0, 0);
-
-    //then set the global alpha to the amound that you want to tint it, and draw the buffer directly on top of it.
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(bufferCanvas, 0, 0);
-}
