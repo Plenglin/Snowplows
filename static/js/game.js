@@ -76,29 +76,35 @@ Drawing.prototype.drawGame = function(gameObj) {
 	
 	var self = this;
 
+	// Clear the screen
+	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
 	// Apply the camera to the canvas
 	this.ctx.save();
 	this.updateCam();
 	//this.cam.scale = 0.25;
 	this.cam.applyToCanvas(this.ctx);
 
-	// Clear the screen
-	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
 	// Render background
 	this.ctx.strokeStyle = "black";
-	this.ctx.lineWidth = 100;
+	this.ctx.lineWidth = ARENA_THICKNESS;
 	this.ctx.strokeRect(
 		ARENA_THICKNESS/2, 
 		ARENA_THICKNESS/2, 
 		this.arenaDims.width + ARENA_THICKNESS*2, 
 		this.arenaDims.height + ARENA_THICKNESS*2);
 
+	// Debug dot at (700, 400)
+	this.ctx.beginPath();
+	this.ctx.arc(700, 400, 5, 0, 2*Math.PI);
+	this.ctx.fill();
+
 	// Render players
 	gameObj.forEachPlayer(function (player) {
 		self.drawPlayer(player);
 	});
 
+	// Reset scaling and stuff
 	this.ctx.restore();
 
 };
@@ -108,11 +114,10 @@ Drawing.prototype.drawPlayer = function(player) {
 	// Rotate around center
 	this.ctx.translate(player.pos.x, player.pos.y);
 	this.ctx.rotate(player.direction);
-	this.ctx.translate(-player.pos.x, player.pos.y);
 
 	this.drawImgWithTint(
 		playerImg, player.getColor(), 0.5, 
-		player.x-playerImg.width/2, player.y-playerImg.height/2, 
+		-playerImg.width/2, -playerImg.height/2, 
 		playerImg.width, playerImg.height);
 	this.ctx.restore();
 
@@ -143,8 +148,8 @@ function Team(id, color) {
 	this.players = {};
 }
 
-Team.prototype.createPlayer = function(id) {
-	var p = new Player(this, id);
+Team.prototype.createPlayer = function(id, isUser) {
+	var p = new Player(this, id, isUser);
 	this.players[id] = p;
 	return p;
 };
@@ -177,14 +182,14 @@ Game.prototype.initialize = function(data) {
     	var teamData = data.teams[i];
     	var id = teamData.id;
     	
-    	var color = id == this.playerTeamId ? FRIENDLY_COLOR : choice(ENEMY_COLORS);
+    	var color = (id == this.playerTeamId) ? FRIENDLY_COLOR : choice(ENEMY_COLORS);
     	var team = new Team(id, color);
     	this.teams[id] = team;
     	console.log('assigned', color, 'to', id);
     	
     	for (var j = teamData.players.length - 1; j >= 0; j--) {
     		var playerId = teamData.players[j];
-    		team.createPlayer(playerId);
+    		team.createPlayer(playerId, playerId == this.playerId);
     	}
     }
 
@@ -205,9 +210,7 @@ Game.prototype.update = function(data) {
 		var team = self.teams[tData.id];
 		tData.players.forEach(function (pData) {
 			var player = team.getPlayer(pData.id);
-			player.pos.x = pData.x;
-			player.pos.y = pData.y;
-			player.direction = pData.direction;
+			player.setTransform(pData.x, pData.y, pData.direction);
 		});
 	});
 };
