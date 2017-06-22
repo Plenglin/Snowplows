@@ -4,5 +4,12 @@
 		{
 			"path": "."
 		}
+	],
+	"build_systems": [
+		{
+			"name": "Run server",
+			"cmd": ["python", "-u", "${project_path}/src/main.py"],
+			"working_dir": "${project_path}/src"
+		}
 	]
 }

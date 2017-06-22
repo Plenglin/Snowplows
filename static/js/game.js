@@ -13,6 +13,13 @@ const FRIENDLY_COLOR = 'darkgreen';
 const SELF_COLOR = 'cornflowerblue';
 const DEAD_COLOR = 'black';
 
+
+function debugDot(ctx, x, y) {
+	ctx.beginPath();
+	ctx.arc(x, y, 5, 0, 2*Math.PI);
+	ctx.fill();
+}
+
 function Camera() {
 	this.scale = 0;
 	this.rotate = 0;
@@ -65,11 +72,11 @@ Drawing.prototype.drawImgWithTint = function(img, tint, alpha, x, y, w, h) {
     this.bctx.drawImage(img, 0, 0);
 
     // to tint the image, draw it first
-    this.ctx.drawImage(img, 0, 0);
+    this.ctx.drawImage(img, x, y);
 
     //then set the global alpha to the amound that you want to tint it, and draw the buffer directly on top of it.
     this.ctx.globalAlpha = alpha;
-    this.ctx.drawImage(this.buffer, 0, 0);
+    this.ctx.drawImage(this.buffer, x, y, w, h);
 };
 
 Drawing.prototype.drawGame = function(gameObj) {
@@ -95,9 +102,7 @@ Drawing.prototype.drawGame = function(gameObj) {
 		this.arenaDims.height + ARENA_THICKNESS*2);
 
 	// Debug dot at (700, 400)
-	this.ctx.beginPath();
-	this.ctx.arc(700, 400, 5, 0, 2*Math.PI);
-	this.ctx.fill();
+	debugDot(this.ctx, 700, 400);
 
 	// Render players
 	gameObj.forEachPlayer(function (player) {
@@ -112,13 +117,17 @@ Drawing.prototype.drawGame = function(gameObj) {
 Drawing.prototype.drawPlayer = function(player) {
 	this.ctx.save();
 	// Rotate around center
-	this.ctx.translate(player.pos.x, player.pos.y);
+	this.ctx.translate(
+		player.pos.x, 
+		player.pos.y);
 	this.ctx.rotate(player.direction);
 
 	this.drawImgWithTint(
 		playerImg, player.getColor(), 0.5, 
 		-playerImg.width/2, -playerImg.height/2, 
 		playerImg.width, playerImg.height);
+	debugDot(this.ctx, 0, 0);
+
 	this.ctx.restore();
 
 };
