@@ -1,4 +1,4 @@
-var game, drawing, drawingCanvas, bufferCanvas, playerImg, drawingTask, inputTask;
+var game, drawing, inputManager, drawingCanvas, bufferCanvas, playerImg, drawingTask, inputTask;
 
 const DRAW_PERIOD = 50;
 const INPUT_PERIOD = 100;
@@ -21,16 +21,36 @@ function debugDot(ctx, x, y) {
 	ctx.fill();
 }
 
+function PlayerControl() {
+	this.pos = new Vec2(0, 0);
+}
+
+PlayerControl.prototype.getCallback = function() {
+	var self = this;
+	return function (event) {
+		self.pos.x = event.clientX;
+		self.pos.y = event.clientY;
+	};
+};
+
 function Camera() {
 	this.scale = 0;
-	this.rotate = 0;
-	this.translate = {x: 0, y: 0};
+	//this.rotate = 0;
+	this.translate = new Vec2(0, 0);
 }
 
 Camera.prototype.applyToCanvas = function(ctx) {
 	ctx.scale(this.scale, this.scale);
-	ctx.rotate(this.rotate);
+	//ctx.rotate(this.rotate);
 	ctx.translate(this.translate.x, this.translate.y);
+};
+
+Camera.prototype.getPointOnScreen = function(p) {
+	// Takes the point relative to (0, 0) on the untransformed canvas and maps it to a point on the camera after transforms.
+	return new Vec2(
+		util.linMap(p.x, 0, 1, this.translate.x, this.scale*(this.translate.x + 1)),
+		util.linMap(p.y, 0, 1, this.translate.y, this.scale*(this.translate.y + 1))
+	);
 };
 
 function Drawing(arenaDims, canvas, bufferCanvas) {
@@ -183,17 +203,13 @@ function Game() {
 	this.socket = null;
 	this.socketstate = null;
 	this.arena = {width: 0, height: 0};
-	this.playerId = '';
-	this.playerTeamId = '';
+	this.player = null;
 	this.teams = {};
 }
 
 Game.prototype.initialize = function(data) {
-    this.playerId = data.player.id;
-    this.playerTeamId = data.player.team;
-
-    console.log('player id is', this.playerId);
-    console.log('player is on team', this.playerTeamId);
+    console.log('player id is', data.player.id);
+    console.log('player is on team', data.player.teamId);
 
     this.arena = data.arena;
     console.log('arena dimensions', this.arena);
@@ -210,7 +226,11 @@ Game.prototype.initialize = function(data) {
     	
     	for (var j = teamData.players.length - 1; j >= 0; j--) {
     		var playerId = teamData.players[j];
-    		team.createPlayer(playerId, playerId == this.playerId, data.playerSize);
+    		if (playerId == this.playerId) {
+	    		this.player = team.createPlayer(playerId, true, data.playerSize);
+	    	} else {
+	    		team.createPlayer(playerId, false, data.playerSize);
+	    	}
     	}
     }
 
@@ -255,18 +275,21 @@ $(function() {
 	game.socket = new WebSocket(websocketUrl($('head').data('socket-url')));
 	
 	async.parallel([
+
 		function (cb) {  // Wait for image to load
 			playerImg.onload = function() {
 				console.log('playerImg finished loading');
 				cb(null);
 			};
 		},
+
 		function (cb) {  // Wait for socket to connect
 			game.socket.onopen = function() {
 				console.log('socket finished opening');
 				cb(null);
 			};
 		}
+
 	], function(err, results) {  // Finally, send our token through the socket to begin the game
     	console.log('sending token', token);
     	game.socketstate = OPENING;
@@ -295,6 +318,17 @@ $(function() {
 		        	drawing.drawGame(game);
 		        	console.log(drawing, game);
 		        }, DRAW_PERIOD);
+
+		        console.log('starting mouse listener and client input');
+		        inputManager = new PlayerControl();
+		        $('#gameCanvas').mousemove(inputManager.getCallback());
+		        inputTask = setInterval(function() {
+		        	game.socket.send({
+		        		movement: drawing.cam.getPointOnScreen(inputManager.pos).sub(game.player.pos),
+		        		events: []
+		        	});
+		        }, INPUT_PERIOD);
+
 				game.socketstate = GAME;
 				
 			} else {

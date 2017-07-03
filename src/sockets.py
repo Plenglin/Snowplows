@@ -1,6 +1,9 @@
 import json
 import logging
 import enum
+
+import pymunk
+
 import game
 
 import tornado
@@ -139,7 +142,11 @@ class GamePlayerConnection(websocket.WebSocketHandler):
             self.state = GameState.GAME
 
         elif self.state == GameState.GAME:
-            pass
+            try:
+                mov_data = data['movement']
+                force = pymunk.Vec2d(mov_data['x'], mov_data['y'])
+            except KeyError:
+                log.warning('%s sent invalid data', self.player_id)
 
         elif self.state == GameState.CLOSING:
             pass
