@@ -133,6 +133,7 @@ class GameInstance:
 
     def __init__(self, g_id):
         self.teams = []
+        self.events = []
         self.space = pymunk.Space()
         self.frames = 0
         self.id = g_id
@@ -152,6 +153,7 @@ class GameInstance:
         for p in self.players:
             if p.id == p_id:
                 return p
+        return None
 
     def players_ready(self):
         return all(p.ready for p in self.players)
@@ -247,7 +249,8 @@ class GameInstance:
     def get_encoded(self) -> dict:
         return {
             'frames': self.frames,
-            'teams': [t.get_encoded() for t in self.teams]
+            'teams': [t.get_encoded() for t in self.teams],
+            'events': self.events,
         }
 
     def get_player_by_id(self, player_id) -> (Player, None):

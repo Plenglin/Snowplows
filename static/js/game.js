@@ -22,7 +22,7 @@ function debugDot(ctx, x, y) {
 }
 
 function PlayerControl() {
-	this.pos = new Vec2(0, 0);
+	this.pos = new util.Vec2(0, 0);
 }
 
 PlayerControl.prototype.getCallback = function() {
@@ -36,7 +36,7 @@ PlayerControl.prototype.getCallback = function() {
 function Camera() {
 	this.scale = 0;
 	//this.rotate = 0;
-	this.translate = new Vec2(0, 0);
+	this.translate = new util.Vec2(0, 0);
 }
 
 Camera.prototype.applyToCanvas = function(ctx) {
@@ -47,7 +47,7 @@ Camera.prototype.applyToCanvas = function(ctx) {
 
 Camera.prototype.getPointOnScreen = function(p) {
 	// Takes the point relative to (0, 0) on the untransformed canvas and maps it to a point on the camera after transforms.
-	return new Vec2(
+	return new util.Vec2(
 		util.linMap(p.x, 0, 1, this.translate.x, this.scale*(this.translate.x + 1)),
 		util.linMap(p.y, 0, 1, this.translate.y, this.scale*(this.translate.y + 1))
 	);
@@ -162,10 +162,11 @@ Drawing.prototype.drawPlayer = function(player) {
 function Player(team, id, isUser, size) {
 	this.team = team;
 	this.id = id;
-	this.pos = {x: 0, y: 0};
+	this.pos = new util.Vec2(0, 0);
 	this.direction = 0;
 	this.isUser = isUser;
 	this.size = size;
+	this.living = true;
 }
 
 Player.prototype.setTransform = function(x, y, direction) {
@@ -209,7 +210,7 @@ function Game() {
 
 Game.prototype.initialize = function(data) {
     console.log('player id is', data.player.id);
-    console.log('player is on team', data.player.teamId);
+    console.log('player is on team', data.player.team);
 
     this.arena = data.arena;
     console.log('arena dimensions', this.arena);
@@ -219,14 +220,16 @@ Game.prototype.initialize = function(data) {
     	var teamData = data.teams[i];
     	var id = teamData.id;
     	
-    	var color = (id == this.playerTeamId) ? FRIENDLY_COLOR : choice(ENEMY_COLORS);
+    	var color = (id === this.playerTeamId) ? FRIENDLY_COLOR : choice(ENEMY_COLORS);
     	var team = new Team(id, color);
     	this.teams[id] = team;
     	console.log('assigned', color, 'to', id);
     	
     	for (var j = teamData.players.length - 1; j >= 0; j--) {
     		var playerId = teamData.players[j];
-    		if (playerId == this.playerId) {
+    		console.log('creating player', playerId);
+    		if (playerId === data.player.id) {
+    			console.log('this.player');
 	    		this.player = team.createPlayer(playerId, true, data.playerSize);
 	    	} else {
 	    		team.createPlayer(playerId, false, data.playerSize);
@@ -323,10 +326,14 @@ $(function() {
 		        inputManager = new PlayerControl();
 		        $('#gameCanvas').mousemove(inputManager.getCallback());
 		        inputTask = setInterval(function() {
-		        	game.socket.send({
-		        		movement: drawing.cam.getPointOnScreen(inputManager.pos).sub(game.player.pos),
+		        	console.log('ipman', inputManager);
+		        	var pointOnScreen = drawing.cam.getPointOnScreen(inputManager.pos);
+		        	var playerPos = game.player.pos;
+		        	console.log(pointOnScreen, playerPos);
+		        	game.socket.send(JSON.stringify({
+		        		movement: pointOnScreen.sub(playerPos),
 		        		events: []
-		        	});
+		        	}));
 		        }, INPUT_PERIOD);
 
 				game.socketstate = GAME;

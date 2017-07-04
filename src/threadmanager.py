@@ -132,7 +132,7 @@ class RoomCluster(threading.Thread):
         while True:
             loop_start = time.time()
             for instance in self.games:
-                log.debug('running %s', instance)
+                # log.debug('running %s', instance)
                 instance.update(self.update_period)
             delay_time = self.update_period + loop_start - time.time()
             try:

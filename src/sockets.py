@@ -144,7 +144,9 @@ class GamePlayerConnection(websocket.WebSocketHandler):
         elif self.state == GameState.GAME:
             try:
                 mov_data = data['movement']
-                force = pymunk.Vec2d(mov_data['x'], mov_data['y'])
+                force = pymunk.Vec2d(mov_data['x'], mov_data['y']).normalized()
+                log.debug('%s: %s', self.player_id, force)
+                self.player.body
             except KeyError:
                 log.warning('%s sent invalid data', self.player_id)
 
