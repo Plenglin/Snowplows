@@ -329,7 +329,7 @@ $(function() {
 		        	console.log('ipman', inputManager);
 		        	var pointOnScreen = drawing.cam.getPointOnScreen(inputManager.pos);
 		        	var playerPos = game.player.pos;
-		        	console.log(pointOnScreen, playerPos);
+		        	console.log(inputManager.pos, pointOnScreen, playerPos);
 		        	game.socket.send(JSON.stringify({
 		        		movement: pointOnScreen.sub(playerPos),
 		        		events: []
