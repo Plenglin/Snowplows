@@ -1,4 +1,5 @@
-#gameCanvas: {
+#gameCanvas {
 	width: 100%;
 	text-align: center;
+	cursor: none;
 }

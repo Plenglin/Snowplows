@@ -51,6 +51,10 @@ Camera.prototype.getPointOnScreen = function(p) {
 		util.linMap(p.x, 0, 1, this.translate.x, this.scale*(this.translate.x + 1)),
 		util.linMap(p.y, 0, 1, this.translate.y, this.scale*(this.translate.y + 1))
 	);
+	/*return new util.Vec2(
+		util.linMap(p.x, 0, 1, 0, this.scale*(1)),
+		util.linMap(p.y, 0, 1, 0, this.scale*(1))
+	);*/
 };
 
 function Drawing(arenaDims, canvas, bufferCanvas) {
@@ -124,8 +128,7 @@ Drawing.prototype.drawGame = function(gameObj) {
 		this.arenaDims.width + ARENA_THICKNESS*2, 
 		this.arenaDims.height + ARENA_THICKNESS*2);
 
-	// Debug dot at (700, 400)
-	debugDot(this.ctx, 700, 400);
+	debugDot(this.ctx, 400, 100);
 
 	// Render players
 	gameObj.forEachPlayer(function (player) {
@@ -156,6 +159,21 @@ Drawing.prototype.drawPlayer = function(player) {
 	debugDot(this.ctx, 0, 0);
 
 	this.ctx.restore();
+
+};
+
+Drawing.prototype.setCanvasDimensions = function() {
+	console.log('setting canvas dims with arena dims', this.arenaDims, 'and window dims', $(window).width(), $(window).height());
+	if ($(window).width() < $(window).height()) {
+		console.log('window is vertical');
+		this.canvas.width = $(window).width();
+		this.canvas.height = $(window).width() * this.arenaDims.height / this.arenaDims.width;
+	} else {
+		console.log('window is horizontal');
+		this.canvas.height = $(window).height();
+		this.canvas.width = $(window).height() * this.arenaDims.width / this.arenaDims.height;		
+	}
+	console.log('final canvas dims:', this.canvas.width, this.canvas.height);
 
 };
 
@@ -265,8 +283,6 @@ $(function() {
 
 	drawingCanvas = $('#gameCanvas')[0];
 	bufferCanvas = $('#bufferCanvas')[0];
-	drawingCanvas.width = $(window).width();
-	drawingCanvas.height = $(window).height();
 
 	var token = $('head').data('token');
 
@@ -315,7 +331,8 @@ $(function() {
 			    
 			    console.log('game object:', game);
 			    drawing = new Drawing(game.arena, drawingCanvas, bufferCanvas);
-			    
+				drawing.setCanvasDimensions();
+
 			    console.log('starting drawing task');
 		        drawingTask = setInterval(function() {
 		        	drawing.drawGame(game);
@@ -329,6 +346,8 @@ $(function() {
 		        	console.log('ipman', inputManager);
 		        	var pointOnScreen = drawing.cam.getPointOnScreen(inputManager.pos);
 		        	var playerPos = game.player.pos;
+		        	pointOnScreen = pointOnScreen.add(new Vec2(ARENA_THICKNESS, ARENA_THICKNESS));
+		        	debugDot(drawing.ctx, pointOnScreen.x, pointOnScreen.y);
 		        	console.log(inputManager.pos, pointOnScreen, playerPos);
 		        	game.socket.send(JSON.stringify({
 		        		movement: pointOnScreen.sub(playerPos),
